@@ -204,8 +204,10 @@ export function registerIpcHandlers(
         return { success: false, error: 'Window not found' }
       }
 
-      // Set ignore mouse events (click-through)
-      window.setIgnoreMouseEvents(enabled)
+      // Set ignore mouse events (click-through). `forward: true` is required so
+      // the window still receives move events — otherwise the hover-to-interact
+      // handler can never fire to turn click-through back off.
+      window.setIgnoreMouseEvents(enabled, enabled ? { forward: true } : undefined)
 
       // Store click-through state
       await storeService.set('clickThrough', enabled)
@@ -213,6 +215,20 @@ export function registerIpcHandlers(
       return { success: true }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to set click-through'
+      return { success: false, error: message }
+    }
+  })
+
+  // Set overlay opacity live (0.3–1.0 from a 50–100 slider)
+  ipcMain.handle('set-overlay-opacity', async (_event, opacity: number) => {
+    try {
+      const window = BrowserWindow.fromWebContents(_event.sender)
+      if (window) {
+        window.setOpacity(Math.max(0.3, Math.min(1, opacity / 100)))
+      }
+      return { success: true }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to set overlay opacity'
       return { success: false, error: message }
     }
   })

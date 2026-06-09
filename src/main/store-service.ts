@@ -1,5 +1,6 @@
 import { app } from 'electron'
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFileSync } from 'node:fs'
+import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 const STORE_FILE_NAME = 'usage-tracker-store.json'
@@ -10,14 +11,14 @@ export class StoreService {
 
   constructor() {
     this.storePath = join(app.getPath('userData'), STORE_FILE_NAME)
-    this.load().catch((err) => {
-      console.error('Failed to load store:', err)
-    })
+    // Load synchronously: createWindow() reads the store immediately on startup
+    // (overlay mode, opacity, saved bounds), so it must be populated before then.
+    this.load()
   }
 
-  private async load(): Promise<void> {
+  private load(): void {
     try {
-      const data = await readFile(this.storePath, 'utf-8')
+      const data = readFileSync(this.storePath, 'utf-8')
       this.store = JSON.parse(data)
     } catch {
       // File doesn't exist yet, use defaults

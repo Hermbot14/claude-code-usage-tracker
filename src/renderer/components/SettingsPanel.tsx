@@ -64,6 +64,15 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
     await updateSettings({ overlayMode: { ...localSettings.overlayMode, position } })
   }
 
+  // Handle overlay opacity change - apply live + persist
+  const handleOverlayOpacityChange = async (opacity: number) => {
+    handleChange('overlayMode', { ...localSettings.overlayMode, opacity })
+    if (localSettings.overlayMode.enabled) {
+      await window.api.setOverlayOpacity(opacity)
+    }
+    await updateSettings({ overlayMode: { ...localSettings.overlayMode, opacity } })
+  }
+
   const handleSave = async () => {
     setSaveStatus('saving')
     try {
@@ -430,7 +439,7 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                   max="100"
                   step="5"
                   value={localSettings.overlayMode.opacity}
-                  onChange={(e) => handleChange('overlayMode', { ...localSettings.overlayMode, opacity: parseInt(e.target.value) })}
+                  onChange={(e) => handleOverlayOpacityChange(parseInt(e.target.value))}
                   style={{
                     width: '100%',
                     accentColor: 'var(--color-accent-primary)'

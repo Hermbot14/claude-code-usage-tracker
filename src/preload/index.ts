@@ -46,6 +46,8 @@ const api = {
     ipcRenderer.invoke('set-click-through', enabled),
   setOverlayPosition: (position: string) =>
     ipcRenderer.invoke('set-overlay-position', position),
+  setOverlayOpacity: (opacity: number) =>
+    ipcRenderer.invoke('set-overlay-opacity', opacity),
 
   // Event listeners
   onRefreshUsage: (callback: () => void) => {

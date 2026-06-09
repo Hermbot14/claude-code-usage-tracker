@@ -37,6 +37,7 @@ declare global {
       setOverlayMode: (enabled: boolean) => Promise<{ success: boolean }>
       setClickThrough: (enabled: boolean) => Promise<{ success: boolean }>
       setOverlayPosition: (position: string) => Promise<{ success: boolean }>
+      setOverlayOpacity: (opacity: number) => Promise<{ success: boolean; error?: string }>
       onRefreshUsage: (callback: () => void) => () => void
     }
   }

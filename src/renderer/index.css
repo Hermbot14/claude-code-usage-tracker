@@ -731,6 +731,11 @@
 
 /* Main overlay container */
 .usage-overlay {
+  /* The entire card is a drag handle (interactive children opt out below) */
+  -webkit-app-region: drag;
+  app-region: drag;
+  cursor: move;
+
   /* Dark translucent background */
   background-color: rgba(15, 15, 20, 0.92);
 
@@ -789,13 +794,17 @@
   -webkit-user-select: none;
 }
 
-/* Interactive elements in header (buttons, etc.) */
+/* Interactive elements (buttons, links) opt out of the window drag region */
+.usage-overlay button,
+.usage-overlay a,
+.usage-overlay .interactive,
 .overlay-header button,
 .overlay-header a,
 .overlay-header .interactive {
   /* Disable drag on interactive elements */
   -webkit-app-region: no-drag;
   app-region: no-drag;
+  cursor: pointer;
 
   /* Background for visibility */
   background-color: rgba(255, 255, 255, 0.1);

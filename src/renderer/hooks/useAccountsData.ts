@@ -89,6 +89,13 @@ export function useAccountsData() {
   useEffect(() => {
     const bootstrap = async () => {
       try {
+        // Restore persisted settings (overlay mode, opacity, refresh interval,
+        // thresholds, theme) before anything reads them.
+        const storedSettings = await window.api.store.get('settings', null)
+        if (storedSettings) {
+          useUsageStore.getState().initializeFromStorage(storedSettings)
+        }
+
         const [providers, local] = await Promise.all([
           window.api.listProviders(),
           window.api.discoverLocalAccounts(),

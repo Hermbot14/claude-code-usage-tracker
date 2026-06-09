@@ -66,6 +66,15 @@ function createWindow(overlayMode: boolean = false): void {
       },
     })
 
+    // Apply the saved overlay opacity so the window is genuinely semi-transparent.
+    const storedSettings = storeService?.get('settings', null) as
+      | { overlayMode?: { opacity?: number } }
+      | null
+    const opacityPct = storedSettings?.overlayMode?.opacity
+    if (typeof opacityPct === 'number') {
+      mainWindow.setOpacity(Math.max(0.3, Math.min(1, opacityPct / 100)))
+    }
+
     // Track overlay window movements to save custom position
     mainWindow.on('moved', () => {
       if (mainWindow && !mainWindow.isDestroyed()) {
