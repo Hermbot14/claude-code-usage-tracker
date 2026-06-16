@@ -11,6 +11,41 @@ let storeService: StoreService | null = null
 // Simple is.dev check
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
 
+// Ensure a saved window position is on a currently-connected display.
+// Saved bounds can point at a monitor that is no longer attached (e.g. a
+// laptop that was undocked), which spawns the window off-screen and makes
+// the app look like it failed to launch. If the position is not visible on
+// any display, re-center it on the primary display.
+function clampBoundsToDisplay(bounds: {
+  x?: number
+  y?: number
+  width: number
+  height: number
+}): { x?: number; y?: number; width: number; height: number } {
+  if (bounds.x === undefined || bounds.y === undefined) return bounds
+
+  // Require at least this many px of the window to land inside a work area,
+  // so a title bar / drag handle is always reachable.
+  const VISIBLE_MARGIN = 80
+  const isVisible = screen.getAllDisplays().some((d) => {
+    const wa = d.workArea
+    return (
+      bounds.x! + bounds.width - VISIBLE_MARGIN >= wa.x &&
+      bounds.x! + VISIBLE_MARGIN <= wa.x + wa.width &&
+      bounds.y! + 1 >= wa.y &&
+      bounds.y! + 1 <= wa.y + wa.height
+    )
+  })
+  if (isVisible) return bounds
+
+  const wa = screen.getPrimaryDisplay().workArea
+  return {
+    ...bounds,
+    x: Math.round(wa.x + (wa.width - bounds.width) / 2),
+    y: Math.round(wa.y + (wa.height - bounds.height) / 2),
+  }
+}
+
 // Calculate overlay window bounds based on position
 function calculateOverlayBounds(position: string): { x: number; y: number } {
   const display = screen.getPrimaryDisplay()
@@ -42,7 +77,8 @@ function createWindow(overlayMode: boolean = false): void {
   if (overlayMode) {
     // Overlay window configuration
     // Use custom position if user dragged it, otherwise use preset position
-    const bounds = customOverlayBounds || calculateOverlayBounds(overlayPosition)
+    const rawBounds = customOverlayBounds || calculateOverlayBounds(overlayPosition)
+    const bounds = clampBoundsToDisplay({ ...rawBounds, width: 200, height: 200 })
 
     mainWindow = new BrowserWindow({
       width: 200,
@@ -84,11 +120,18 @@ function createWindow(overlayMode: boolean = false): void {
     })
   } else {
     // Normal window configuration
-    mainWindow = new BrowserWindow({
-      width: savedBounds?.width || 500,
-      height: savedBounds?.height || 700,
+    const normalBounds = clampBoundsToDisplay({
       x: savedBounds?.x,
       y: savedBounds?.y,
+      width: savedBounds?.width || 500,
+      height: savedBounds?.height || 700,
+    })
+
+    mainWindow = new BrowserWindow({
+      width: normalBounds.width,
+      height: normalBounds.height,
+      x: normalBounds.x,
+      y: normalBounds.y,
       show: false,
       autoHideMenuBar: true,
       resizable: true,
