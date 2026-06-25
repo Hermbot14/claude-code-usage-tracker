@@ -2,7 +2,6 @@ import { format } from 'date-fns'
 import type { AccountConfig, AccountUsageState, ProviderInfo } from '@/types'
 import { useUsageStore } from '@stores/useUsageStore'
 import { formatTimeRemaining, getUsageColor, getGradientClass } from '@lib/utils'
-import { Card } from './ui/Card'
 import { ProviderIcon } from './ui/ProviderIcon'
 import { Sparkline } from './ui/Sparkline'
 
@@ -104,10 +103,20 @@ export function AccountCard({ account, state, provider, onRemove }: AccountCardP
   const accent = state?.status === 'ok' ? getUsageColor(worst) : 'var(--color-border-default)'
 
   return (
-    <div style={{ position: 'relative', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-      {/* Status accent bar */}
-      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: accent }} />
-      <Card>
+    <div
+      className="account-card"
+      style={{
+        background: 'var(--color-surface-card)',
+        borderRadius: 'var(--radius-xl)',
+        boxShadow: 'var(--shadow-md)',
+        transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
+      }}
+    >
+      {/* Status accent bar — flex child, always visible against the card */}
+      <div style={{ width: 4, flexShrink: 0, background: accent }} />
+
+      {/* Card content — left padding reduced by 4px to keep visual symmetry with accent bar */}
+      <div style={{ flex: 1, padding: '24px 24px 24px 20px' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
@@ -148,7 +157,7 @@ export function AccountCard({ account, state, provider, onRemove }: AccountCardP
 
         {/* Body */}
         {!state || state.status === 'loading' ? (
-          <div style={{ height: 88, backgroundColor: 'var(--color-background-secondary)', borderRadius: 'var(--radius-md)' }} />
+          <div style={{ height: 88, borderRadius: 'var(--radius-md)' }} className="skeleton-loader" />
         ) : state.status === 'error' ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', backgroundColor: 'var(--color-semantic-error-light)', borderRadius: 'var(--radius-md)' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-semantic-error)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
@@ -169,7 +178,7 @@ export function AccountCard({ account, state, provider, onRemove }: AccountCardP
             </div>
           </>
         )}
-      </Card>
+      </div>
     </div>
   )
 }

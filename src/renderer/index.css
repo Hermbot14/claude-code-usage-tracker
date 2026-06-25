@@ -603,6 +603,27 @@
   animation: pulse 2s ease-in-out infinite;
 }
 
+/* Account card — flex wrapper so the left accent bar is always visible */
+.account-card {
+  display: flex;
+  overflow: hidden;
+}
+
+.dark .account-card {
+  border: 1px solid var(--color-border-default);
+}
+
+/* Skeleton loading placeholder — uses surface-elevated in dark mode so it
+   contrasts against surface-card (which can share the same hex as background-secondary) */
+.skeleton-loader {
+  background-color: var(--color-background-secondary);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.dark .skeleton-loader {
+  background-color: var(--color-surface-elevated);
+}
+
 /* ============================================
    UTILITY CLASSES
    ============================================ */
