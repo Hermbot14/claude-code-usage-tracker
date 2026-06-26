@@ -130,6 +130,8 @@ export interface AccountConfig {
   apiKey?: string
   /** Optional base-URL override. */
   baseUrl?: string
+  /** User-set plan label override (e.g. "Max 20x"). Shown instead of the API-inferred label. */
+  planLabel?: string
 }
 
 /** Normalized usage for one account (matches main-process NormalizedUsage). */

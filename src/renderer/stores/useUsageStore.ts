@@ -46,6 +46,7 @@ interface UsageStore {
   setLocalAccounts: (local: LocalAccountInfo[]) => void
   appendHistory: (id: string, sessionPercent: number, weeklyPercent: number) => void
   refreshAccount: (id: string) => Promise<void>
+  updateAccountPlan: (id: string, planLabel: string) => Promise<void>
 }
 
 const defaultSettings: Settings = {
@@ -235,6 +236,13 @@ export const useUsageStore = create<UsageStore>((set, get) => ({
       const next = [...prev, { t: Date.now(), s: sessionPercent, w: weeklyPercent }].slice(-48)
       return { accountHistory: { ...state.accountHistory, [id]: next } }
     }),
+
+  updateAccountPlan: async (id, planLabel) => {
+    const accounts = get().accounts.map((a) => (a.id === id ? { ...a, planLabel: planLabel.trim() || undefined } : a))
+    set({ accounts })
+    const metaOnly = accounts.map(({ apiKey: _k, ...meta }) => meta)
+    await window.api.store.set('accounts', metaOnly)
+  },
 
   refreshAccount: async (id) => {
     const account = get().accounts.find((a) => a.id === id)

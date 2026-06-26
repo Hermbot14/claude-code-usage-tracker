@@ -52,6 +52,11 @@ interface AnthropicWindow {
   utilization?: number
   resets_at?: string
 }
+interface AnthropicLimit {
+  kind?: string
+  group?: string
+  scope?: { model?: { display_name?: string } } | null
+}
 interface AnthropicUsageResponse {
   five_hour?: AnthropicWindow
   seven_day?: AnthropicWindow
@@ -60,31 +65,45 @@ interface AnthropicUsageResponse {
   seven_day_utilization?: number
   seven_day_reset_at?: string
   email?: string
-  // Plan / subscription fields — Anthropic may return any of these.
+  limits?: AnthropicLimit[]
+  // Plan / subscription fields — Anthropic may return any of these in a future API version.
   plan?: string
   plan_name?: string
   subscription?: { type?: string; plan?: string; tier?: string }
 }
 
-/** Map the raw plan string returned by Anthropic → a readable label. */
+/**
+ * Infer the plan label from the API response.
+ *
+ * Anthropic doesn't expose the plan name directly. We derive it from the
+ * `limits` array structure:
+ *   - `weekly_all` kind  → Max plan (all-model weekly cap; absent on Pro)
+ *   - only `weekly_scoped` → Pro plan (Sonnet-only weekly cap)
+ *
+ * The multiplier (5x / 20x) can't be determined without the dollar limits
+ * (always null in this response), so we return the base tier and let users
+ * refine it via the inline edit on the card.
+ */
 function normalizePlanLabel(data: AnthropicUsageResponse): string | undefined {
-  const raw =
-    data.plan ??
-    data.plan_name ??
-    data.subscription?.type ??
-    data.subscription?.plan ??
-    data.subscription?.tier
-  if (!raw) return undefined
-  const p = raw.toLowerCase().replace(/[-\s]/g, '_')
-  if (p.includes('max_20') || p.includes('max20')) return 'Max 20x'
-  if (p.includes('max_5') || p.includes('max5')) return 'Max 5x'
-  if (p.includes('max')) return 'Max'
-  if (p.includes('pro')) return 'Pro'
-  if (p.includes('team')) return 'Team'
-  if (p.includes('enterprise')) return 'Enterprise'
-  if (p.includes('free')) return 'Free'
-  // Unknown string — title-case it as a fallback.
-  return raw.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+  // Prefer an explicit plan field if Anthropic ever adds one.
+  const raw = data.plan ?? data.plan_name ?? data.subscription?.type ?? data.subscription?.plan ?? data.subscription?.tier
+  if (raw) {
+    const p = raw.toLowerCase().replace(/[-\s]/g, '_')
+    if (p.includes('max_20') || p.includes('max20')) return 'Max 20x'
+    if (p.includes('max_5') || p.includes('max5')) return 'Max 5x'
+    if (p.includes('max')) return 'Max'
+    if (p.includes('pro')) return 'Pro'
+    if (p.includes('team')) return 'Team'
+    if (p.includes('enterprise')) return 'Enterprise'
+    if (p.includes('free')) return 'Free'
+    return raw.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+  }
+  // Infer from limits array structure.
+  if (Array.isArray(data.limits)) {
+    if (data.limits.some((l) => l.kind === 'weekly_all')) return 'Max'
+    if (data.limits.some((l) => l.kind === 'weekly_scoped')) return 'Pro'
+  }
+  return undefined
 }
 
 export function normalizeAnthropic(data: AnthropicUsageResponse): NormalizedUsage {

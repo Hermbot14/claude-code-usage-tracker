@@ -1,4 +1,5 @@
 import { format } from 'date-fns'
+import { useState, useRef, useEffect } from 'react'
 import type { AccountConfig, AccountUsageState, ProviderInfo } from '@/types'
 import { useUsageStore } from '@stores/useUsageStore'
 import { formatTimeRemaining, getUsageColor, getGradientClass } from '@lib/utils'
@@ -94,9 +95,30 @@ function IconButton({
 }
 
 export function AccountCard({ account, state, provider, onRemove }: AccountCardProps) {
-  const { accountHistory, refreshAccount, refreshingIds } = useUsageStore()
+  const { accountHistory, refreshAccount, refreshingIds, updateAccountPlan } = useUsageStore()
   const refreshing = refreshingIds.includes(account.id)
   const history = accountHistory[account.id] ?? []
+
+  // Plan label: account config override > API-inferred > nothing
+  const apiPlan = state?.status === 'ok' ? state.usage.planLabel : undefined
+  const displayPlan = account.planLabel ?? apiPlan
+
+  const [editingPlan, setEditingPlan] = useState(false)
+  const [planDraft, setPlanDraft] = useState('')
+  const planInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (editingPlan) {
+      setPlanDraft(displayPlan ?? '')
+      planInputRef.current?.focus()
+      planInputRef.current?.select()
+    }
+  }, [editingPlan, displayPlan])
+
+  const commitPlan = () => {
+    setEditingPlan(false)
+    updateAccountPlan(account.id, planDraft)
+  }
 
   const worst =
     state?.status === 'ok' ? Math.max(state.usage.sessionPercent, state.usage.weeklyPercent) : 0
@@ -131,19 +153,36 @@ export function AccountCard({ account, state, provider, onRemove }: AccountCardP
                     {authChip[provider.auth] ?? provider.auth.toUpperCase()}
                   </span>
                 )}
-                {state?.status === 'ok' && state.usage.planLabel && (
-                  <>
-                    <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>·</span>
-                    <span style={{
+                <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>·</span>
+                {editingPlan ? (
+                  <input
+                    ref={planInputRef}
+                    value={planDraft}
+                    onChange={(e) => setPlanDraft(e.target.value)}
+                    onBlur={commitPlan}
+                    onKeyDown={(e) => { if (e.key === 'Enter') commitPlan(); if (e.key === 'Escape') setEditingPlan(false) }}
+                    placeholder="e.g. Max 20x"
+                    style={{
                       fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
-                      color: 'var(--color-accent-primary)',
-                      backgroundColor: 'color-mix(in srgb, var(--color-accent-primary) 12%, transparent)',
-                      padding: '1px 6px',
-                      borderRadius: 'var(--radius-full)',
-                    }}>
-                      {state.usage.planLabel}
-                    </span>
-                  </>
+                      width: 80, padding: '1px 5px', border: '1px solid var(--color-accent-primary)',
+                      borderRadius: 'var(--radius-full)', outline: 'none',
+                      backgroundColor: 'var(--color-surface-card)', color: 'var(--color-accent-primary)',
+                    }}
+                  />
+                ) : (
+                  <span
+                    onClick={() => setEditingPlan(true)}
+                    title={displayPlan ? 'Click to edit plan' : 'Click to set plan'}
+                    style={{
+                      fontSize: 10, fontWeight: displayPlan ? 700 : 400, letterSpacing: 0.5,
+                      color: displayPlan ? 'var(--color-accent-primary)' : 'var(--color-text-tertiary)',
+                      backgroundColor: displayPlan ? 'color-mix(in srgb, var(--color-accent-primary) 12%, transparent)' : 'transparent',
+                      padding: '1px 6px', borderRadius: 'var(--radius-full)',
+                      cursor: 'pointer', userSelect: 'none',
+                    }}
+                  >
+                    {displayPlan ?? '+ plan'}
+                  </span>
                 )}
                 {state?.status === 'ok' && state.usage.email && (
                   <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
