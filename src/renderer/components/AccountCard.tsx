@@ -125,11 +125,25 @@ export function AccountCard({ account, state, provider, onRemove }: AccountCardP
               <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {account.name}
               </p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
                 {provider && (
                   <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: 0.4, color: 'var(--color-text-tertiary)' }}>
                     {authChip[provider.auth] ?? provider.auth.toUpperCase()}
                   </span>
+                )}
+                {state?.status === 'ok' && state.usage.planLabel && (
+                  <>
+                    <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>·</span>
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
+                      color: 'var(--color-accent-primary)',
+                      backgroundColor: 'color-mix(in srgb, var(--color-accent-primary) 12%, transparent)',
+                      padding: '1px 6px',
+                      borderRadius: 'var(--radius-full)',
+                    }}>
+                      {state.usage.planLabel}
+                    </span>
+                  </>
                 )}
                 {state?.status === 'ok' && state.usage.email && (
                   <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

@@ -60,6 +60,31 @@ interface AnthropicUsageResponse {
   seven_day_utilization?: number
   seven_day_reset_at?: string
   email?: string
+  // Plan / subscription fields — Anthropic may return any of these.
+  plan?: string
+  plan_name?: string
+  subscription?: { type?: string; plan?: string; tier?: string }
+}
+
+/** Map the raw plan string returned by Anthropic → a readable label. */
+function normalizePlanLabel(data: AnthropicUsageResponse): string | undefined {
+  const raw =
+    data.plan ??
+    data.plan_name ??
+    data.subscription?.type ??
+    data.subscription?.plan ??
+    data.subscription?.tier
+  if (!raw) return undefined
+  const p = raw.toLowerCase().replace(/[-\s]/g, '_')
+  if (p.includes('max_20') || p.includes('max20')) return 'Max 20x'
+  if (p.includes('max_5') || p.includes('max5')) return 'Max 5x'
+  if (p.includes('max')) return 'Max'
+  if (p.includes('pro')) return 'Pro'
+  if (p.includes('team')) return 'Team'
+  if (p.includes('enterprise')) return 'Enterprise'
+  if (p.includes('free')) return 'Free'
+  // Unknown string — title-case it as a fallback.
+  return raw.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 export function normalizeAnthropic(data: AnthropicUsageResponse): NormalizedUsage {
@@ -93,6 +118,7 @@ export function normalizeAnthropic(data: AnthropicUsageResponse): NormalizedUsag
     weeklyWindowLabel: labels.weekly,
     limitType: pickLimitType(sessionPercent, weeklyPercent),
     email: data.email,
+    planLabel: normalizePlanLabel(data),
     lastUpdated: new Date().toISOString(),
   }
 }

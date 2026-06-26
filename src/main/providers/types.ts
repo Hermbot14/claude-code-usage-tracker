@@ -104,6 +104,8 @@ export interface NormalizedUsage {
   limitType?: 'session' | 'weekly'
   /** Account email if the provider returns one. */
   email?: string
+  /** Human-readable plan label if the provider returns one (e.g. "Max 20x", "Pro"). */
+  planLabel?: string
   /** ISO timestamp of capture. */
   lastUpdated: string
 }

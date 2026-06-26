@@ -147,6 +147,8 @@ export interface ProviderUsage {
   weeklyWindowLabel: string
   limitType?: 'session' | 'weekly'
   email?: string
+  /** Human-readable plan label if the provider returns one (e.g. "Max 20x", "Pro"). */
+  planLabel?: string
   lastUpdated: string
 }
 
