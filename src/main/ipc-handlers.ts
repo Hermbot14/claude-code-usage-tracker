@@ -55,6 +55,9 @@ export function registerIpcHandlers(
   ipcMain.handle('fetch-account-usage', async (_event, account: UsageAccount) => {
     const result = await fetchAccountUsage(account)
     if (!result.ok) {
+      // 'throttled' means minPollMs hasn't elapsed and there's no cached data yet — tell
+      // the renderer to leave the current state unchanged rather than showing an error.
+      if (result.code === 'throttled') return { success: true, data: null, throttled: true }
       return { success: false, error: result.error, code: result.code }
     }
     return { success: true, data: result.usage }

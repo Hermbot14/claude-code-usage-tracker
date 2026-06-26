@@ -242,7 +242,7 @@ export const useUsageStore = create<UsageStore>((set, get) => ({
     if (get().refreshingIds.includes(id)) return
     set((s) => ({ refreshingIds: [...s.refreshingIds, id] }))
     try {
-      const res = await window.api.fetchAccountUsage(account)
+      const res = await window.api.fetchAccountUsage({ ...account, forceRefresh: true })
       if (res.success && res.data) {
         const usage = res.data as import('@/types').ProviderUsage
         get().setAccountUsage(id, { status: 'ok', usage })

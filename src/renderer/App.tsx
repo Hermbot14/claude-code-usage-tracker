@@ -93,10 +93,11 @@ function App() {
           justifyContent: 'space-between',
           transition: 'background-color 0.3s ease'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '1 1 auto', minWidth: 0 }}>
             <div style={{
               width: '40px',
               height: '40px',
+              flexShrink: 0,
               background: 'linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-accent-primary-hover) 100%)',
               borderRadius: 'var(--radius-md)',
               display: 'flex',
@@ -107,13 +108,16 @@ function App() {
                 <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
             </div>
-            <div>
+            <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
               <h1 style={{
                 fontSize: '18px',
                 fontWeight: '700',
                 color: 'var(--color-text-primary)',
                 margin: 0,
-                lineHeight: '1.2'
+                lineHeight: '1.2',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
               }}>
                 Usage Tracker
               </h1>
@@ -121,13 +125,16 @@ function App() {
                 fontSize: '12px',
                 color: 'var(--color-text-tertiary)',
                 margin: 0,
-                marginTop: '2px'
+                marginTop: '2px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
               }}>
                 Coding-Plan Usage Monitor
               </p>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             <ThemeSelector />
             <button
               onClick={toggleDarkMode}

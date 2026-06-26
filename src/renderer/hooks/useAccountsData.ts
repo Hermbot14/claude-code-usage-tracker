@@ -60,6 +60,10 @@ export function useAccountsData() {
 
       let primary: ProviderUsage | null = null
       for (const { account, res } of results) {
+        if ((res as { throttled?: boolean }).throttled) {
+          // minPollMs not yet elapsed and no cached data — leave current state unchanged.
+          continue
+        }
         if (res.success && res.data) {
           const usage = res.data as ProviderUsage
           setAccountUsage(account.id, { status: 'ok', usage })

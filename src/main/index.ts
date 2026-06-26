@@ -130,6 +130,8 @@ function createWindow(overlayMode: boolean = false): void {
     mainWindow = new BrowserWindow({
       width: normalBounds.width,
       height: normalBounds.height,
+      minWidth: 400,
+      minHeight: 300,
       x: normalBounds.x,
       y: normalBounds.y,
       show: false,

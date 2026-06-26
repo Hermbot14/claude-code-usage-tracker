@@ -17,11 +17,12 @@ import { normalizeAnthropic, normalizeCodex, normalizeZai } from './normalizers'
 
 const REQUEST_TIMEOUT_MS = 12_000
 /** How long to back off an account after the provider returns 429. */
-const RATE_LIMIT_COOLDOWN_MS = 5 * 60_000
+const RATE_LIMIT_COOLDOWN_MS = 90_000
 
 // Per-account caches (account.id keyed). Module-level so they persist across polls.
 const lastGood = new Map<string, NormalizedUsage>()
 const lastFetchAt = new Map<string, number>()
+const lastAttemptAt = new Map<string, number>()
 const cooldownUntil = new Map<string, number>()
 
 export interface UsageAccount {
@@ -32,6 +33,8 @@ export interface UsageAccount {
   apiKey?: string
   /** Optional base-URL override (e.g. a regional ZAI/Zhipu endpoint). */
   baseUrl?: string
+  /** When true, clears any active cooldown before fetching (used by manual refresh). */
+  forceRefresh?: boolean
 }
 
 interface ResolvedCredential {
@@ -60,7 +63,6 @@ async function resolveCredential(account: UsageAccount, forceRefresh = false): P
 function buildHeaders(provider: ProviderId, token: string, accountId?: string | null): Record<string, string> {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
-    'Content-Type': 'application/json',
   }
   if (provider === 'anthropic') {
     // OAuth usage endpoint requires the Claude Code beta headers.
@@ -118,22 +120,30 @@ export async function fetchAccountUsage(account: UsageAccount): Promise<FetchUsa
 
   const now = Date.now()
 
+  // Manual refresh clears any active cooldown so the user can force a retry.
+  if (account.forceRefresh) {
+    cooldownUntil.delete(account.id)
+  }
+
   // Serve the last good snapshot while in a rate-limit cooldown.
   const cooldown = cooldownUntil.get(account.id)
   if (cooldown && now < cooldown) {
     const cached = lastGood.get(account.id)
     if (cached) return { ok: true, usage: cached }
-    return { ok: false, code: 'rate_limit', error: `${desc.label} rate-limited — retrying after cooldown` }
+    const secsLeft = Math.ceil((cooldown - now) / 1000)
+    return { ok: false, code: 'rate_limit', error: `${desc.label} rate-limited — retrying in ${secsLeft}s` }
   }
 
-  // Throttle providers with a minimum poll interval (e.g. Anthropic): serve the
-  // last good snapshot rather than hammering the endpoint and tripping 429s.
+  // Throttle providers with a minimum poll interval (e.g. Anthropic 60s).
+  // Applied even when there is no cached data so a polling loop can't hammer the endpoint.
   const minPoll = desc.minPollMs ?? 0
-  const last = lastFetchAt.get(account.id)
-  const throttled = lastGood.get(account.id)
-  if (throttled && minPoll && last && now - last < minPoll) {
-    return { ok: true, usage: throttled }
+  const lastAttempt = lastAttemptAt.get(account.id)
+  if (minPoll && lastAttempt && now - lastAttempt < minPoll) {
+    const cached = lastGood.get(account.id)
+    if (cached) return { ok: true, usage: cached }
+    return { ok: false, code: 'throttled', error: '' }
   }
+  lastAttemptAt.set(account.id, now)
 
   const performFetch = async (forceRefresh: boolean): Promise<FetchUsageResult> => {
     const cred = await resolveCredential(account, forceRefresh)

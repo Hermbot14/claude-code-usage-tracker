@@ -42,6 +42,9 @@ interface ClaudeCredFile {
 
 // De-dupe concurrent refreshes (multiple accounts/polls can race).
 let inFlight: Promise<ClaudeTokenResult> | null = null
+/** After a failed refresh, don't retry until this timestamp. Prevents hammering the endpoint. */
+let refreshBlockedUntil = 0
+const REFRESH_BLOCK_MS = 4 * 60_000 // 4 minutes between failed refresh attempts
 
 function readCredFile(): ClaudeCredFile | null {
   try {
@@ -133,15 +136,26 @@ export async function getFreshClaudeToken(force = false): Promise<ClaudeTokenRes
     }
   }
 
+  // Don't hammer the refresh endpoint after a failure — back off for REFRESH_BLOCK_MS.
+  if (!inFlight && Date.now() < refreshBlockedUntil) {
+    return {
+      token: oauth.accessToken ?? null,
+      email: emailOf(oauth),
+      error: 'Token refresh on cooldown — will retry shortly',
+    }
+  }
+
   if (inFlight) return inFlight
 
   inFlight = (async () => {
     try {
       const result = await refreshWith(oauth.refreshToken!)
       if (!result.ok) {
+        refreshBlockedUntil = Date.now() + REFRESH_BLOCK_MS
         // Refresh failed — fall back to stored token (may still 401) but report why.
         return { token: oauth.accessToken ?? null, email: emailOf(oauth), error: result.error }
       }
+      refreshBlockedUntil = 0 // Reset block on success
       const expiresAt = Date.now() + (result.expires_in ?? 28_800) * 1000
       try {
         writeBack(full!, {

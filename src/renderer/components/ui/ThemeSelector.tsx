@@ -68,14 +68,15 @@ export function ThemeSelector() {
       {/* Theme Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        aria-label="Select theme"
+        aria-label={`Theme: ${currentThemeData.name}. Click to change.`}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
+        title={currentThemeData.name}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: '8px',
-          padding: '8px 12px',
+          justifyContent: 'center',
+          padding: '8px',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--color-border-default)',
           backgroundColor: 'var(--color-surface-card)',
@@ -94,9 +95,6 @@ export function ThemeSelector() {
             border: '2px solid var(--color-border-default)'
           }}
         />
-        <span style={{ fontSize: '14px', fontWeight: '500', color: 'var(--color-text-primary)' }}>
-          {currentThemeData.name}
-        </span>
       </button>
 
       {/* Theme Dropdown */}
