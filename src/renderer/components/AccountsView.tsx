@@ -30,17 +30,28 @@ export function AccountsView({ onOpenSettings }: AccountsViewProps) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(12px, 1.5vw, 18px)' }}>
       <StatusSummary />
-      {accounts.map((account) => (
-        <AccountCard
-          key={account.id}
-          account={account}
-          state={accountUsage[account.id]}
-          provider={providerById(account.provider)}
-          onRemove={removeAccount}
-        />
-      ))}
+      {/* Responsive grid: 1 column when narrow, flowing to 2–3 as the window widens.
+          min(100%, 340px) keeps a single card from overflowing very narrow windows. */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))',
+          gap: 'clamp(12px, 1.5vw, 18px)',
+          alignItems: 'start',
+        }}
+      >
+        {accounts.map((account) => (
+          <AccountCard
+            key={account.id}
+            account={account}
+            state={accountUsage[account.id]}
+            provider={providerById(account.provider)}
+            onRemove={removeAccount}
+          />
+        ))}
+      </div>
     </div>
   )
 }

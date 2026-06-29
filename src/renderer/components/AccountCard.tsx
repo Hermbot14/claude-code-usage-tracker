@@ -39,8 +39,17 @@ function MetricRow({
         </span>
         <span style={{ fontSize: 14, fontWeight: 700, color, fontVariantNumeric: 'tabular-nums' }}>{percent}%</span>
       </div>
-      <div style={{ width: '100%', height: 8, backgroundColor: 'var(--color-background-secondary)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${Math.min(percent, 100)}%`, background: getGradientClass(percent), borderRadius: 'var(--radius-full)', transition: 'width 0.5s ease-out' }} />
+      <div style={{ width: '100%', height: 9, backgroundColor: 'var(--color-background-secondary)', borderRadius: 'var(--radius-full)', overflow: 'hidden', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.12)' }}>
+        <div
+          style={{
+            height: '100%',
+            width: `${Math.min(percent, 100)}%`,
+            background: getGradientClass(percent),
+            borderRadius: 'var(--radius-full)',
+            boxShadow: `0 0 8px color-mix(in srgb, ${color} 55%, transparent)`,
+            transition: 'width 0.5s ease-out, box-shadow 0.3s ease',
+          }}
+        />
       </div>
       <div style={{ marginTop: 4, textAlign: 'right' }}>
         <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>resets in {formatTimeRemaining(reset)}</span>

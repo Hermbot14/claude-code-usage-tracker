@@ -622,6 +622,16 @@
 .account-card {
   display: flex;
   overflow: hidden;
+  border: 1px solid var(--color-border-default);
+  transition: transform 0.2s ease, box-shadow 0.3s ease, background-color 0.3s ease,
+    border-color 0.2s ease;
+}
+
+/* Modern hover lift — card rises slightly and picks up an accent-tinted edge. */
+.account-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg) !important;
+  border-color: color-mix(in srgb, var(--color-accent-primary) 45%, var(--color-border-default));
 }
 
 .dark .account-card {

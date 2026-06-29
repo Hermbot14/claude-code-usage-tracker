@@ -68,6 +68,47 @@ function calculateOverlayBounds(position: string): { x: number; y: number } {
   }
 }
 
+// Wire keyboard + Ctrl-wheel zoom on the dashboard window. Electron doesn't
+// bind Ctrl +/-/0 without a menu, so we handle the accelerators directly and
+// persist the chosen factor so it survives relaunches.
+const ZOOM_STEP = 0.1
+const ZOOM_MIN = 0.5
+const ZOOM_MAX = 3.0
+
+function wireZoom(win: BrowserWindow): void {
+  const apply = (factor: number): void => {
+    const clamped = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(factor * 100) / 100))
+    win.webContents.setZoomFactor(clamped)
+    storeService?.set('zoomFactor', clamped)
+  }
+
+  // Restore the saved zoom once the page is ready (setZoomFactor resets on load).
+  win.webContents.once('did-finish-load', () => {
+    const saved = storeService?.get('zoomFactor', 1)
+    if (typeof saved === 'number' && saved !== 1) win.webContents.setZoomFactor(saved)
+  })
+
+  win.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown' || !input.control) return
+    const k = input.key
+    if (k === '=' || k === '+' || k === 'Add') {
+      apply(win.webContents.getZoomFactor() + ZOOM_STEP)
+      event.preventDefault()
+    } else if (k === '-' || k === '_' || k === 'Subtract') {
+      apply(win.webContents.getZoomFactor() - ZOOM_STEP)
+      event.preventDefault()
+    } else if (k === '0') {
+      apply(1)
+      event.preventDefault()
+    }
+  })
+
+  // Ctrl + mouse wheel — Electron emits this but leaves applying it to us.
+  win.webContents.on('zoom-changed', (_event, dir) => {
+    apply(win.webContents.getZoomFactor() + (dir === 'in' ? ZOOM_STEP : -ZOOM_STEP))
+  })
+}
+
 function createWindow(overlayMode: boolean = false): void {
   // Get stored settings for overlay configuration
   const overlayPosition = storeService?.get('overlayPosition', 'top-right') || 'top-right'
@@ -152,6 +193,9 @@ function createWindow(overlayMode: boolean = false): void {
       },
     })
   }
+
+  // Keyboard / wheel zoom is only meaningful for the resizable dashboard.
+  if (!overlayMode) wireZoom(mainWindow)
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()

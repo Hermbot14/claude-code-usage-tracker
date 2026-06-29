@@ -115,15 +115,17 @@ function App() {
     <div style={{
       minHeight: '100vh',
       backgroundColor: 'var(--color-background-primary)',
-      padding: '16px',
+      // Fluid outer padding — tightens on narrow windows, breathes on wide ones.
+      padding: 'clamp(12px, 2.2vw, 28px)',
       transition: 'background-color 0.3s ease'
     }}>
-      <div style={{ maxWidth: '640px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Fluid container: grows with the window up to a comfortable cap, centered. */}
+      <div style={{ width: '100%', maxWidth: 'min(96vw, 1180px)', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'clamp(12px, 1.5vw, 18px)' }}>
         {/* Header */}
         <header style={{
           backgroundColor: 'var(--color-surface-card)',
           borderRadius: 'var(--radius-lg)',
-          padding: '16px',
+          padding: 'clamp(14px, 1.6vw, 20px)',
           boxShadow: 'var(--shadow-sm)',
           display: 'flex',
           alignItems: 'center',
