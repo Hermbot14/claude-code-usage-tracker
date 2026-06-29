@@ -37,6 +37,9 @@ export function useAccountsData() {
 
   const isFetchingRef = useRef(false)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  // Last-good usage per account, mirrored to disk so a cold launch can show
+  // data immediately instead of blanking while the (rate-limited) API retries.
+  const lastUsageRef = useRef<Record<string, ProviderUsage>>({})
 
   const pollAll = useCallback(async () => {
     const list = useUsageStore.getState().accounts
@@ -59,6 +62,7 @@ export function useAccountsData() {
       )
 
       let primary: ProviderUsage | null = null
+      let cacheDirty = false
       for (const { account, res } of results) {
         if ((res as { throttled?: boolean }).throttled) {
           // minPollMs not yet elapsed and no cached data — leave current state unchanged.
@@ -68,16 +72,33 @@ export function useAccountsData() {
           const usage = res.data as ProviderUsage
           setAccountUsage(account.id, { status: 'ok', usage })
           appendHistory(account.id, usage.sessionPercent, usage.weeklyPercent)
+          lastUsageRef.current[account.id] = usage
+          cacheDirty = true
           const worst = Math.max(usage.sessionPercent, usage.weeklyPercent)
           const primaryWorst = primary ? Math.max(primary.sessionPercent, primary.weeklyPercent) : -1
           if (worst > primaryWorst) primary = usage
         } else {
-          setAccountUsage(account.id, {
-            status: 'error',
-            error: res.error || 'Failed to fetch usage',
-            code: (res as { code?: string }).code,
-          })
+          // Transient hiccups (rate limit / network) shouldn't wipe a good reading
+          // off the screen — keep the last-known value if we have one. Only surface
+          // an error for persistent problems (auth, no credential, unsupported).
+          const code = (res as { code?: string }).code
+          const cached = lastUsageRef.current[account.id]
+          const transient = code === 'rate_limit' || code === 'network' || code === undefined
+          if (cached && transient) {
+            setAccountUsage(account.id, { status: 'ok', usage: cached })
+          } else {
+            setAccountUsage(account.id, {
+              status: 'error',
+              error: res.error || 'Failed to fetch usage',
+              code,
+            })
+          }
         }
+      }
+
+      // Persist fresh readings so the next cold launch hydrates instantly.
+      if (cacheDirty) {
+        window.api.store.set('lastUsage', lastUsageRef.current).catch(() => {})
       }
 
       // Mirror the most-constrained account into the legacy tray/overlay state.
@@ -109,6 +130,17 @@ export function useAccountsData() {
         setProviders(providers)
         setLocalAccounts(local)
 
+        // Hydrate last-good usage from disk so cards render data immediately,
+        // before the first (potentially rate-limited) network poll returns.
+        const cachedUsage = ((await window.api.store.get('lastUsage', {})) || {}) as Record<string, ProviderUsage>
+        lastUsageRef.current = { ...cachedUsage }
+        const hydrate = (list: AccountConfig[]) => {
+          for (const a of list) {
+            const u = cachedUsage[a.id]
+            if (u) setAccountUsage(a.id, { status: 'ok', usage: u })
+          }
+        }
+
         const stored = (await window.api.store.get('accounts', null)) as AccountConfig[] | null
         if (stored && Array.isArray(stored)) {
           // Restore encrypted API keys; also migrate any plaintext keys left from older
@@ -127,6 +159,7 @@ export function useAccountsData() {
             })
           )
           setAccounts(accountsWithKeys)
+          hydrate(accountsWithKeys)
           if (needsResave) {
             // Rewrite accounts file without plaintext keys
             const metaOnly = accountsWithKeys.map(({ apiKey: _k, ...meta }) => meta)
@@ -145,6 +178,7 @@ export function useAccountsData() {
             seeded.push({ id: `${loc.provider}-local`, name: labelFor(loc.provider), provider: loc.provider })
           }
           setAccounts(seeded)
+          hydrate(seeded)
           await window.api.store.set('accounts', seeded)
         }
       } catch (error) {
