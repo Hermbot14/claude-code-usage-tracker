@@ -63,14 +63,19 @@ function IconButton({
   label,
   spinning,
   danger,
+  tone = 'default',
   children,
 }: {
   onClick: () => void
   label: string
   spinning?: boolean
   danger?: boolean
+  /** 'onAccent' = light icon for placement on the gradient plan header. */
+  tone?: 'default' | 'onAccent'
   children: React.ReactNode
 }) {
+  const onAccent = tone === 'onAccent'
+  const base = onAccent ? 'var(--color-text-inverse)' : 'var(--color-text-tertiary)'
   return (
     <button
       onClick={onClick}
@@ -78,23 +83,31 @@ function IconButton({
       title={label}
       disabled={spinning}
       style={{
-        padding: 6,
+        padding: 7,
         borderRadius: 'var(--radius-md)',
         border: 'none',
         backgroundColor: 'transparent',
         cursor: spinning ? 'default' : 'pointer',
-        color: 'var(--color-text-tertiary)',
+        color: base,
+        opacity: onAccent ? 0.8 : 1,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        transition: 'color 0.15s, background-color 0.15s',
+        transition: 'color 0.15s, background-color 0.15s, opacity 0.15s',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.color = danger ? 'var(--color-semantic-error)' : 'var(--color-text-primary)'
-        e.currentTarget.style.backgroundColor = 'var(--color-background-secondary)'
+        e.currentTarget.style.opacity = '1'
+        if (onAccent) {
+          e.currentTarget.style.color = 'var(--color-text-inverse)'
+          e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.22)'
+        } else {
+          e.currentTarget.style.color = danger ? 'var(--color-semantic-error)' : 'var(--color-text-primary)'
+          e.currentTarget.style.backgroundColor = 'var(--color-background-secondary)'
+        }
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.color = 'var(--color-text-tertiary)'
+        e.currentTarget.style.color = base
+        e.currentTarget.style.opacity = onAccent ? '0.8' : '1'
         e.currentTarget.style.backgroundColor = 'transparent'
       }}
     >
@@ -129,97 +142,53 @@ export function AccountCard({ account, state, provider, onRemove }: AccountCardP
     updateAccountPlan(account.id, planDraft)
   }
 
-  const worst =
-    state?.status === 'ok' ? Math.max(state.usage.sessionPercent, state.usage.weeklyPercent) : 0
-  const accent = state?.status === 'ok' ? getUsageColor(worst) : 'var(--color-border-default)'
+  // "Max 20x" → "Max 20×" for a more polished multiplier glyph.
+  const prettyPlan = displayPlan ? displayPlan.replace(/(\d)\s*x\b/i, '$1×') : undefined
+  const authLabel = provider ? authChip[provider.auth] ?? provider.auth.toUpperCase() : null
+  const email = state?.status === 'ok' ? state.usage.email : undefined
 
   return (
     <div
       className="account-card"
       style={{
+        flexDirection: 'column',
         background: 'var(--color-surface-card)',
         borderRadius: 'var(--radius-xl)',
         boxShadow: 'var(--shadow-md)',
-        transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
+        transition: 'transform 0.2s ease, box-shadow 0.3s ease, background-color 0.3s ease, border-color 0.2s ease',
       }}
     >
-      {/* Status accent bar — flex child, always visible against the card */}
-      <div style={{ width: 4, flexShrink: 0, background: accent }} />
-
-      {/* Card content — left padding reduced by 4px to keep visual symmetry with accent bar */}
-      <div style={{ flex: 1, padding: '24px 24px 24px 20px' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+      {/* ── Plan header: a gradient band that makes the subscription the hero ── */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-accent-primary-hover) 100%)',
+          padding: 'clamp(15px, 1.7vw, 19px)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 14,
+        }}
+      >
+        {/* Identity + actions */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-            <ProviderIcon provider={account.provider} />
+            <div style={{ borderRadius: 11, boxShadow: '0 0 0 2px rgba(255,255,255,0.32)', display: 'flex', flexShrink: 0 }}>
+              <ProviderIcon provider={account.provider} size={38} />
+            </div>
             <div style={{ minWidth: 0 }}>
-              {/* Name + plan badge — the plan is the visual anchor of this row */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {account.name}
-                </p>
-                {editingPlan ? (
-                  <input
-                    ref={planInputRef}
-                    value={planDraft}
-                    onChange={(e) => setPlanDraft(e.target.value)}
-                    onBlur={commitPlan}
-                    onKeyDown={(e) => { if (e.key === 'Enter') commitPlan(); if (e.key === 'Escape') setEditingPlan(false) }}
-                    placeholder="e.g. Max 20x"
-                    style={{
-                      fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
-                      width: 88, padding: '2px 7px', border: '1px solid var(--color-accent-primary)',
-                      borderRadius: 'var(--radius-full)', outline: 'none', flexShrink: 0,
-                      backgroundColor: 'var(--color-surface-card)', color: 'var(--color-accent-primary)',
-                    }}
-                  />
-                ) : displayPlan ? (
-                  <span
-                    onClick={() => setEditingPlan(true)}
-                    title="Click to edit plan"
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 4,
-                      fontSize: 10, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase',
-                      color: 'var(--color-text-inverse)',
-                      background: 'linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-primary-hover))',
-                      padding: '2px 8px', borderRadius: 'var(--radius-full)',
-                      boxShadow: 'var(--shadow-sm)', cursor: 'pointer', userSelect: 'none',
-                      whiteSpace: 'nowrap', flexShrink: 0,
-                    }}
-                  >
-                    <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: 0.9 }}>
-                      <path d="M5 16L3 6l5.5 4L12 4l3.5 6L21 6l-2 10H5zm0 2h14v2H5v-2z" />
-                    </svg>
-                    {displayPlan}
-                  </span>
-                ) : (
-                  <span
-                    onClick={() => setEditingPlan(true)}
-                    title="Click to set plan"
-                    style={{
-                      fontSize: 10, fontWeight: 500, letterSpacing: 0.3,
-                      color: 'var(--color-text-tertiary)',
-                      border: '1px dashed var(--color-border-default)',
-                      padding: '1px 7px', borderRadius: 'var(--radius-full)',
-                      cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', flexShrink: 0,
-                    }}
-                  >
-                    + plan
+              <p style={{ margin: 0, fontSize: 17, fontWeight: 700, color: 'var(--color-text-inverse)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {account.name}
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, minWidth: 0 }}>
+                {authLabel && (
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.5, color: 'var(--color-text-inverse)', opacity: 0.72, flexShrink: 0 }}>
+                    {authLabel}
                   </span>
                 )}
-              </div>
-              {/* Auth method + account email */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, minWidth: 0 }}>
-                {provider && (
-                  <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: 0.4, color: 'var(--color-text-tertiary)', flexShrink: 0 }}>
-                    {authChip[provider.auth] ?? provider.auth.toUpperCase()}
-                  </span>
-                )}
-                {state?.status === 'ok' && state.usage.email && (
+                {email && (
                   <>
-                    <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)', flexShrink: 0 }}>·</span>
-                    <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {state.usage.email}
+                    <span style={{ fontSize: 10, color: 'var(--color-text-inverse)', opacity: 0.5, flexShrink: 0 }}>·</span>
+                    <span style={{ fontSize: 11, color: 'var(--color-text-inverse)', opacity: 0.72, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {email}
                     </span>
                   </>
                 )}
@@ -227,13 +196,13 @@ export function AccountCard({ account, state, provider, onRemove }: AccountCardP
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-            <IconButton onClick={() => refreshAccount(account.id)} label={`Refresh ${account.name}`} spinning={refreshing}>
+            <IconButton tone="onAccent" onClick={() => refreshAccount(account.id)} label={`Refresh ${account.name}`} spinning={refreshing}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M23 4v6h-6M1 20v-6h6" />
                 <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
               </svg>
             </IconButton>
-            <IconButton onClick={() => onRemove(account.id)} label={`Remove ${account.name}`} danger>
+            <IconButton tone="onAccent" onClick={() => onRemove(account.id)} label={`Remove ${account.name}`} danger>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="3 6 5 6 21 6" />
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -242,7 +211,69 @@ export function AccountCard({ account, state, provider, onRemove }: AccountCardP
           </div>
         </div>
 
-        {/* Body */}
+        {/* Plan hero block — floats on the gradient, the visual centerpiece */}
+        <div
+          onClick={() => setEditingPlan(true)}
+          title={displayPlan ? 'Click to edit plan' : 'Click to set your plan'}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 13,
+            background: 'var(--color-surface-card)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '11px 15px',
+            boxShadow: 'var(--shadow-lg)',
+            cursor: 'pointer',
+          }}
+        >
+          <div style={{
+            width: 38, height: 38, flexShrink: 0, borderRadius: 'var(--radius-md)',
+            background: 'var(--color-accent-primary-light)',
+            color: 'var(--color-accent-primary)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M5 16L3 6l5.5 4L12 4l3.5 6L21 6l-2 10H5zm0 2h14v2H5v-2z" />
+            </svg>
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: 1.3, textTransform: 'uppercase', color: 'var(--color-text-tertiary)' }}>
+              Current plan
+            </div>
+            {editingPlan ? (
+              <input
+                ref={planInputRef}
+                value={planDraft}
+                onChange={(e) => setPlanDraft(e.target.value)}
+                onBlur={commitPlan}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => { if (e.key === 'Enter') commitPlan(); if (e.key === 'Escape') setEditingPlan(false) }}
+                placeholder="e.g. Max 20x"
+                style={{
+                  width: '100%', marginTop: 1, border: 'none', outline: 'none', background: 'transparent',
+                  fontSize: 19, fontWeight: 800, lineHeight: 1.15, color: 'var(--color-text-primary)',
+                  borderBottom: '1.5px solid var(--color-accent-primary)', padding: 0,
+                }}
+              />
+            ) : (
+              <div style={{
+                fontSize: 19, fontWeight: 800, lineHeight: 1.15,
+                color: displayPlan ? 'var(--color-text-primary)' : 'var(--color-text-tertiary)',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>
+                {prettyPlan ?? 'Set your plan'}
+              </div>
+            )}
+          </div>
+          {!editingPlan && (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.6 }}>
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
+            </svg>
+          )}
+        </div>
+      </div>
+
+      {/* ── Body: usage metrics ── */}
+      <div style={{ padding: 'clamp(16px, 1.8vw, 22px)' }}>
         {!state || state.status === 'loading' ? (
           <div style={{ height: 88, borderRadius: 'var(--radius-md)' }} className="skeleton-loader" />
         ) : state.status === 'error' ? (
