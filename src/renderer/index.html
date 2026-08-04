@@ -3,6 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Content-Security-Policy — the renderer loads only its own local bundle and
+      talks to the main process over IPC (it makes no network requests of its
+      own). Lock everything to 'self' so a hypothetical XSS cannot pull in remote
+      script or exfiltrate over the network. 'unsafe-inline' is required for the
+      synchronous theme preloader below and React/Tailwind's injected styles; no
+      remote origin is ever permitted.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-src 'none'"
+    />
     <title>Usage Tracker</title>
     <!--
       Synchronous theme preloader — runs before React mounts, before CSS parses.
@@ -31,6 +43,9 @@
           retro:   ['#FEF3C7', '#1C1917'],
           neo:     ['#FDF4FF', '#0F0720'],
           forest:  ['#DCFCE7', '#052E16'],
+          sportslink: ['#F4F7FB', '#071626'],
+          vercel:     ['#FAFAFA', '#000000'],
+          blossom:    ['#FFF7FB', '#14101C'],
         }
         var pair = BG[theme] || BG['default']
         document.documentElement.style.backgroundColor = dark ? pair[1] : pair[0]

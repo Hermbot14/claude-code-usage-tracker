@@ -512,6 +512,242 @@
 }
 
 /* ============================================
+   SPORTSLINK THEME (Light)
+   Brand palette: navy #0B2545, blue #1575BD, red #EE1C24, gold #E5A823
+   ============================================ */
+[data-theme="sportslink"] {
+  --color-background-primary: #F4F7FB;
+  --color-background-secondary: #E6EEF7;
+  --color-background-neutral: #EDF3F9;
+
+  --color-surface-card: #FFFFFF;
+  --color-surface-elevated: #FFFFFF;
+  --color-surface-overlay: rgba(11, 37, 69, 0.55);
+
+  --color-text-primary: #0B2545;
+  --color-text-secondary: #46617F;
+  --color-text-tertiary: #7C93AC;
+  /* White, because the accent is a saturated blue that carries light text. */
+  --color-text-inverse: #FFFFFF;
+
+  --color-accent-primary: #1575BD;
+  --color-accent-primary-hover: #0F5A94;
+  --color-accent-primary-light: #DCEBF8;
+
+  --color-semantic-success: #12A06A;
+  --color-semantic-success-light: #DCF5EB;
+  --color-semantic-warning: #E5A823;
+  --color-semantic-warning-light: #FDF3DC;
+  --color-semantic-error: #EE1C24;
+  --color-semantic-error-light: #FDE7E8;
+  --color-semantic-info: #1575BD;
+  --color-semantic-info-light: #DCEBF8;
+
+  --color-border-default: #D3E1EE;
+  --color-border-focus: #1575BD;
+
+  --shadow-focus: 0 0 0 3px rgba(21, 117, 189, 0.22);
+}
+
+/* SportsLink Dark — deep navy ground, brighter blue accent */
+[data-theme="sportslink"].dark {
+  --color-background-primary: #071626;
+  --color-background-secondary: #0C2036;
+  --color-background-neutral: #091B2D;
+
+  --color-surface-card: #0C2036;
+  --color-surface-elevated: #123048;
+  --color-surface-overlay: rgba(0, 0, 0, 0.8);
+
+  --color-text-primary: #E8F1F9;
+  --color-text-secondary: #9DB4CA;
+  --color-text-tertiary: #6E88A2;
+  --color-text-inverse: #FFFFFF;
+
+  --color-accent-primary: #3E9BE0;
+  --color-accent-primary-hover: #66B2EA;
+  --color-accent-primary-light: #10304C;
+
+  --color-semantic-success: #2FCE95;
+  --color-semantic-success-light: #0F2A22;
+  --color-semantic-warning: #E5A823;
+  --color-semantic-warning-light: #2C2413;
+  --color-semantic-error: #FF5C63;
+  --color-semantic-error-light: #2C1517;
+  --color-semantic-info: #3E9BE0;
+  --color-semantic-info-light: #10304C;
+
+  --color-border-default: #17364F;
+  --color-border-focus: #3E9BE0;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.7);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.8);
+  --shadow-focus: 0 0 0 2px rgba(62, 155, 224, 0.35);
+}
+
+/* ============================================
+   VERCEL THEME (Light)
+   Geist: high-contrast neutrals, one electric blue
+   ============================================ */
+[data-theme="vercel"] {
+  --color-background-primary: #FAFAFA;
+  --color-background-secondary: #F2F2F2;
+  --color-background-neutral: #F5F5F5;
+
+  --color-surface-card: #FFFFFF;
+  --color-surface-elevated: #FFFFFF;
+  --color-surface-overlay: rgba(0, 0, 0, 0.55);
+
+  --color-text-primary: #000000;
+  --color-text-secondary: #666666;
+  --color-text-tertiary: #8F8F8F;
+  --color-text-inverse: #FFFFFF;
+
+  --color-accent-primary: #0070F3;
+  --color-accent-primary-hover: #0761D1;
+  --color-accent-primary-light: #E5F1FD;
+
+  --color-semantic-success: #17A34A;
+  --color-semantic-success-light: #E7F6EB;
+  --color-semantic-warning: #F5A623;
+  --color-semantic-warning-light: #FEF4E5;
+  --color-semantic-error: #E5484D;
+  --color-semantic-error-light: #FEEBEC;
+  --color-semantic-info: #0070F3;
+  --color-semantic-info-light: #E5F1FD;
+
+  --color-border-default: #EAEAEA;
+  --color-border-focus: #0070F3;
+
+  /* Geist keeps elevation almost flat — hairline borders do the work. */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 8px 20px -6px rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 16px 32px -8px rgba(0, 0, 0, 0.1);
+  --shadow-focus: 0 0 0 3px rgba(0, 112, 243, 0.2);
+}
+
+/* Vercel Dark — true black canvas */
+[data-theme="vercel"].dark {
+  --color-background-primary: #000000;
+  --color-background-secondary: #111111;
+  --color-background-neutral: #0A0A0A;
+
+  --color-surface-card: #0A0A0A;
+  --color-surface-elevated: #171717;
+  --color-surface-overlay: rgba(0, 0, 0, 0.9);
+
+  --color-text-primary: #EDEDED;
+  --color-text-secondary: #A1A1A1;
+  --color-text-tertiary: #737373;
+  --color-text-inverse: #FFFFFF;
+
+  --color-accent-primary: #3291FF;
+  --color-accent-primary-hover: #0070F3;
+  --color-accent-primary-light: #0A1F33;
+
+  --color-semantic-success: #45D483;
+  --color-semantic-success-light: #0F2A1B;
+  --color-semantic-warning: #F5A623;
+  --color-semantic-warning-light: #2A2010;
+  --color-semantic-error: #FF6166;
+  --color-semantic-error-light: #2A1215;
+  --color-semantic-info: #3291FF;
+  --color-semantic-info-light: #0A1F33;
+
+  --color-border-default: #262626;
+  --color-border-focus: #3291FF;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.8);
+  --shadow-md: 0 2px 4px 0 rgba(0, 0, 0, 0.85);
+  --shadow-lg: 0 8px 20px -6px rgba(0, 0, 0, 0.9);
+  --shadow-xl: 0 16px 32px -8px rgba(0, 0, 0, 0.95);
+  --shadow-focus: 0 0 0 2px rgba(50, 145, 255, 0.35);
+}
+
+/* ============================================
+   BLOSSOM THEME (Light)
+   White ground, pink accent, blue counterpoint. Accent-hover is indigo
+   rather than a darker pink, so every accent gradient runs pink -> blue.
+   ============================================ */
+[data-theme="blossom"] {
+  --color-background-primary: #FFF7FB;
+  --color-background-secondary: #FDEBF3;
+  --color-background-neutral: #FFF1F7;
+
+  --color-surface-card: #FFFFFF;
+  --color-surface-elevated: #FFFFFF;
+  --color-surface-overlay: rgba(27, 27, 47, 0.5);
+
+  --color-text-primary: #1B1B2F;
+  --color-text-secondary: #5A5A7A;
+  --color-text-tertiary: #8E8EA9;
+  --color-text-inverse: #FFFFFF;
+
+  --color-accent-primary: #EC4899;
+  --color-accent-primary-hover: #6366F1;
+  --color-accent-primary-light: #FCE7F3;
+
+  --color-semantic-success: #10B981;
+  --color-semantic-success-light: #D7F5EA;
+  --color-semantic-warning: #F59E0B;
+  --color-semantic-warning-light: #FEF3C7;
+  --color-semantic-error: #F43F5E;
+  --color-semantic-error-light: #FFE4E9;
+  --color-semantic-info: #3B82F6;
+  --color-semantic-info-light: #E4EDFD;
+
+  --color-border-default: #F6D9E7;
+  --color-border-focus: #EC4899;
+
+  --shadow-sm: 0 1px 2px 0 rgba(236, 72, 153, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(99, 102, 241, 0.08), 0 2px 4px -2px rgba(236, 72, 153, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(99, 102, 241, 0.1), 0 4px 6px -4px rgba(236, 72, 153, 0.07);
+  --shadow-xl: 0 20px 25px -5px rgba(99, 102, 241, 0.1), 0 8px 10px -6px rgba(236, 72, 153, 0.06);
+  --shadow-focus: 0 0 0 3px rgba(236, 72, 153, 0.22);
+}
+
+/* Blossom Dark — plum-ink ground keeps the pink/blue pairing legible */
+[data-theme="blossom"].dark {
+  --color-background-primary: #14101C;
+  --color-background-secondary: #1D1729;
+  --color-background-neutral: #181322;
+
+  --color-surface-card: #1D1729;
+  --color-surface-elevated: #271F36;
+  --color-surface-overlay: rgba(0, 0, 0, 0.82);
+
+  --color-text-primary: #F2E9F2;
+  --color-text-secondary: #A99CB8;
+  --color-text-tertiary: #7C7090;
+  --color-text-inverse: #FFFFFF;
+
+  --color-accent-primary: #F472B6;
+  --color-accent-primary-hover: #818CF8;
+  --color-accent-primary-light: #2E1F33;
+
+  --color-semantic-success: #34D399;
+  --color-semantic-success-light: #10291F;
+  --color-semantic-warning: #FBBF24;
+  --color-semantic-warning-light: #2A2113;
+  --color-semantic-error: #FB7185;
+  --color-semantic-error-light: #2E1620;
+  --color-semantic-info: #60A5FA;
+  --color-semantic-info-light: #16223A;
+
+  --color-border-default: #2E2640;
+  --color-border-focus: #F472B6;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.7);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.8);
+  --shadow-focus: 0 0 0 2px rgba(244, 114, 182, 0.35);
+}
+
+/* ============================================
    BASE STYLES
    ============================================ */
 @layer base {

@@ -7,7 +7,10 @@ const THEMES = [
   { id: 'ocean', name: 'Ocean', colors: { primary: '#0284C7', bg: '#E0F2FE' } },
   { id: 'retro', name: 'Retro', colors: { primary: '#D97706', bg: '#FEF3C7' } },
   { id: 'neo', name: 'Neo', colors: { primary: '#D946EF', bg: '#FDF4FF' } },
-  { id: 'forest', name: 'Forest', colors: { primary: '#16A34A', bg: '#DCFCE7' } }
+  { id: 'forest', name: 'Forest', colors: { primary: '#16A34A', bg: '#DCFCE7' } },
+  { id: 'sportslink', name: 'SportsLink', colors: { primary: '#1575BD', bg: '#F4F7FB' } },
+  { id: 'vercel', name: 'Vercel', colors: { primary: '#0070F3', bg: '#FAFAFA' } },
+  { id: 'blossom', name: 'Blossom', colors: { primary: '#EC4899', bg: '#FFF7FB' } }
 ]
 
 // Dark backgrounds keyed by theme id — mirrors the lookup in App.tsx and index.html.
@@ -19,6 +22,9 @@ const DARK_BG: Record<string, string> = {
   retro:   '#1C1917',
   neo:     '#0F0720',
   forest:  '#052E16',
+  sportslink: '#071626',
+  vercel:     '#000000',
+  blossom:    '#14101C',
 }
 
 export function ThemeSelector() {
