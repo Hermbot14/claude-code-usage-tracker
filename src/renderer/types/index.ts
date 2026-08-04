@@ -166,6 +166,37 @@ export interface LocalAccountInfo {
   email?: string | null
 }
 
+// ---------------------------------------------------------------------------
+// Cost types (mirror of src/main/cost-service.ts)
+// ---------------------------------------------------------------------------
+
+/** One Claude Code session, repriced from its raw token counts. */
+export interface CostSession {
+  sessionId: string
+  date: string
+  model: string
+  project: string
+  cost: number
+  tokens: { input: number; output: number; cacheWrite: number; cacheRead: number }
+}
+
+/** API-equivalent spend, recomputed from ~/.claude/metrics/costs.jsonl. */
+export interface CostSummary {
+  available: boolean
+  /** Human-readable reason when `available` is false. */
+  reason?: string
+  total: number
+  today: number
+  last7Days: number
+  sessionCount: number
+  sessions: CostSession[]
+  byProject: { project: string; cost: number }[]
+  tokens: { input: number; output: number; cacheWrite: number; cacheRead: number }
+  /** What the raw ledger claims, for comparison — usually inflated. */
+  ledgerReportedTotal: number
+  updatedAt: string
+}
+
 // Usage Status
 export type UsageStatus = 'healthy' | 'warning' | 'critical'
 

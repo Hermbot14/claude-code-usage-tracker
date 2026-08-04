@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { AccountsView } from '@components/AccountsView'
+import { CostPanel } from '@components/CostPanel'
 import { SettingsPanel } from '@components/SettingsPanel'
 import { ThemeSelector } from '@components/ui/ThemeSelector'
 import { UsageOverlay } from '@components/UsageOverlay'
@@ -16,6 +17,9 @@ const THEME_BG: Record<string, [string, string]> = {
   retro:   ['#FEF3C7', '#1C1917'],
   neo:     ['#FDF4FF', '#0F0720'],
   forest:  ['#DCFCE7', '#052E16'],
+  sportslink: ['#F4F7FB', '#071626'],
+  vercel:     ['#FAFAFA', '#000000'],
+  blossom:    ['#FFF7FB', '#14101C'],
 }
 
 function getThemeBg(theme: string, dark: boolean): string {
@@ -143,7 +147,9 @@ function App() {
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              {/* text-inverse, not white — several themes use a pale accent that
+                  a white glyph disappears against. */}
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-inverse)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
             </div>
@@ -252,6 +258,10 @@ function App() {
 
         {/* Main Content */}
         <AccountsView onOpenSettings={() => setIsSettingsOpen(true)} />
+
+        {/* API-equivalent spend — independent of the account quota cards above,
+            sourced from the local Claude Code cost ledger. */}
+        <CostPanel />
 
         {/* Footer */}
         <footer style={{

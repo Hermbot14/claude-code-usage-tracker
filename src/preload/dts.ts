@@ -1,3 +1,5 @@
+import type { CostSummary } from '../renderer/types'
+
 interface ElectronAPI {
   process: {
     platform: NodeJS.Platform
@@ -37,6 +39,7 @@ declare global {
       updateTray: (usage: any) => Promise<{ success: boolean }>
       minimizeToTray: () => Promise<{ success: boolean }>
       getAppVersion: () => Promise<string>
+      getCostSummary: () => Promise<CostSummary>
       setWindowBackground: (color: string) => Promise<{ success: boolean }>
       setOverlayMode: (enabled: boolean) => Promise<{ success: boolean }>
       setClickThrough: (enabled: boolean) => Promise<{ success: boolean }>

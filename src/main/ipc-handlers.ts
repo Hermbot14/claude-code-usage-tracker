@@ -1,5 +1,6 @@
 import { ipcMain, app, BrowserWindow, screen } from 'electron'
 import { StoreService } from './store-service'
+import { getCostSummary } from './cost-service'
 import type { UsageData } from '../renderer/types'
 import {
   fetchAccountUsage,
@@ -151,6 +152,28 @@ export function registerIpcHandlers(
     return app.getVersion()
   })
 
+  // API-equivalent cost summary, recomputed from the Claude Code cost ledger.
+  // Never throws into the renderer — returns an unavailable summary instead.
+  ipcMain.handle('get-cost-summary', async () => {
+    try {
+      return await getCostSummary()
+    } catch (error) {
+      return {
+        available: false,
+        reason: error instanceof Error ? error.message : 'Failed to read cost ledger',
+        total: 0,
+        today: 0,
+        last7Days: 0,
+        sessionCount: 0,
+        sessions: [],
+        byProject: [],
+        tokens: { input: 0, output: 0, cacheWrite: 0, cacheRead: 0 },
+        ledgerReportedTotal: 0,
+        updatedAt: new Date().toISOString()
+      }
+    }
+  })
+
   // Sync BrowserWindow background colour with the current CSS theme.
   // Called whenever the user toggles dark mode or switches theme so that
   // newly-revealed pixels during resize match the page background exactly.
@@ -197,7 +220,7 @@ export function registerIpcHandlers(
 
       // If exiting overlay mode, restore the previous window bounds
       if (!enabled) {
-        const previousBounds = storeService.get('windowBounds')
+        const previousBounds = storeService.get<Electron.Rectangle>('windowBounds')
         if (previousBounds) {
           window.setBounds(previousBounds)
         }

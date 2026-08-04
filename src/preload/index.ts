@@ -46,6 +46,10 @@ const api = {
   getAppVersion: () =>
     ipcRenderer.invoke('get-app-version'),
 
+  // API-equivalent cost summary (recomputed from ~/.claude/metrics/costs.jsonl)
+  getCostSummary: () =>
+    ipcRenderer.invoke('get-cost-summary'),
+
   // Sync window background colour with current CSS theme (prevents resize flash)
   setWindowBackground: (color: string) =>
     ipcRenderer.invoke('set-window-background', color),
