@@ -113,4 +113,8 @@ export interface NormalizedUsage {
 /** Result of a usage fetch attempt. */
 export type FetchUsageResult =
   | { ok: true; usage: NormalizedUsage }
-  | { ok: false; error: string; code?: 'auth' | 'rate_limit' | 'unsupported' | 'no_credential' | 'network' }
+  | {
+      ok: false
+      error: string
+      code?: 'auth' | 'rate_limit' | 'unsupported' | 'no_credential' | 'network' | 'throttled'
+    }

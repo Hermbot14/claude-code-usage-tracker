@@ -34,13 +34,15 @@
     "stack": "electron-vite build && electron out/main/index.cjs",
     "dev:patched": "electron-vite build --mode development && node scripts/patch-electron-import.mjs && electron out/main/index.cjs",
     "build": "electron-vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "test:e2e": "playwright test",
     "pretest:e2e": "electron-vite build",
     "preview": "electron-vite build && electron out/main/index.cjs",
     "start": "node scripts/run-app.mjs",
     "launch": "start \"\" \"dist5/win-unpacked/Usage Tracker.exe\"",
+    "prepackage": "npm run typecheck && npm run build",
     "package": "electron-builder --win",
-    "package:all": "electron-builder -mwl"
+    "package:all": "npm run typecheck && npm run build && electron-builder -mwl"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.18",
@@ -58,7 +60,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.2",
     "autoprefixer": "^10.4.22",
-    "electron": "^32.3.3",
+    "electron": "^43.2.0",
     "electron-builder": "^26.4.0",
     "electron-vite": "^5.0.0",
     "playwright": "^1.58.1",

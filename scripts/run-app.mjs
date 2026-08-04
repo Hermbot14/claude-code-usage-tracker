@@ -9,9 +9,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 async function patchFile(filePath, electronExports) {
   let content = await readFile(filePath, 'utf-8')
 
+  // Keep the original `electron` binding intact and ADD destructured names.
+  // Replacing (rather than augmenting) it broke any `electron.X` member not in
+  // the hardcoded list — e.g. `electron.nativeImage` in TrayManager — which threw
+  // "electron is not defined" and aborted startup before IPC handlers registered.
   content = content.replace(
     /const electron = require\("electron"\);/g,
-    `const { ${electronExports.join(', ')} } = require("electron");`
+    `const electron = require("electron"); const { ${electronExports.join(', ')} } = electron;`
   )
 
   for (const exp of electronExports) {

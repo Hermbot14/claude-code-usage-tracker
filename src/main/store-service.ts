@@ -55,7 +55,9 @@ export class StoreService {
     }
   }
 
-  get<T>(key: string, defaultValue: T): T {
+  get<T>(key: string, defaultValue: T): T
+  get<T>(key: string): T | undefined
+  get<T>(key: string, defaultValue?: T): T | undefined {
     return (this.store[key] as T) ?? defaultValue
   }
 

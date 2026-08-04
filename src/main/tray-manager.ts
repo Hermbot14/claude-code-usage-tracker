@@ -175,7 +175,7 @@ export class TrayManager {
     '%': [0, 0, 0, 0, 0],  // Skip % for now, too small
   }
 
-  private createPercentageOverlay(percent: number): nativeImage {
+  private createPercentageOverlay(percent: number): Electron.NativeImage {
     const size = 32
     const canvas = {
       data: Buffer.alloc(size * size * 4),

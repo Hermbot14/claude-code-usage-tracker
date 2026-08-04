@@ -173,7 +173,7 @@ export class WindowStateManager {
   getAllDisplays(): DisplayBounds[] {
     const displays = screen.getAllDisplays()
 
-    return displays.map((display) => ({
+    return displays.map((display: Electron.Display) => ({
       id: display.id,
       bounds: display.bounds,
       workArea: display.workArea,
@@ -191,7 +191,7 @@ export class WindowStateManager {
     const displays = screen.getAllDisplays()
 
     // Find display that contains the point
-    const targetDisplay = displays.find((display) => {
+    const targetDisplay = displays.find((display: Electron.Display) => {
       const { x: dx, y: dy, width, height } = display.bounds
       return x >= dx && x < dx + width && y >= dy && y < dy + height
     })

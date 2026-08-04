@@ -1,6 +1,7 @@
 {
   "appId": "com.usage-tracker.app",
   "productName": "Usage Tracker",
+  "copyright": "Copyright © 2026 Usage Tracker Contributors",
   "directories": {
     "output": "dist5",
     "buildResources": "resources"
@@ -12,22 +13,30 @@
   "win": {
     "target": [
       {
-        "target": "portable",
+        "target": "nsis",
         "arch": ["x64"]
       },
       {
-        "target": "nsis",
+        "target": "portable",
         "arch": ["x64"]
       }
     ],
     "icon": "resources/icon.ico",
-    "artifactName": "${productName}-${version}-${arch}.${ext}",
     "signAndEditExecutable": false
   },
   "nsis": {
     "oneClick": false,
+    "perMachine": false,
+    "allowElevation": true,
     "allowToChangeInstallationDirectory": true,
     "createDesktopShortcut": true,
-    "createStartMenuShortcut": true
+    "createStartMenuShortcut": true,
+    "shortcutName": "Usage Tracker",
+    "uninstallDisplayName": "Usage Tracker ${version}",
+    "artifactName": "${productName}-Setup-${version}-${arch}.${ext}",
+    "deleteAppDataOnUninstall": false
+  },
+  "portable": {
+    "artifactName": "${productName}-Portable-${version}-${arch}.${ext}"
   }
 }

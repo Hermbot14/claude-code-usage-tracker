@@ -112,8 +112,13 @@ function wireZoom(win: BrowserWindow): void {
 function createWindow(overlayMode: boolean = false): void {
   // Get stored settings for overlay configuration
   const overlayPosition = storeService?.get('overlayPosition', 'top-right') || 'top-right'
-  const savedBounds = storeService?.get('windowBounds')
-  const customOverlayBounds = storeService?.get('customOverlayBounds')
+  const savedBounds = storeService?.get<{
+    x?: number
+    y?: number
+    width?: number
+    height?: number
+  }>('windowBounds')
+  const customOverlayBounds = storeService?.get<{ x: number; y: number }>('customOverlayBounds')
 
   if (overlayMode) {
     // Overlay window configuration
