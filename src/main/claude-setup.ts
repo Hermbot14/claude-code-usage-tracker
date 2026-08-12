@@ -38,7 +38,9 @@ const IS_WIN = process.platform === 'win32'
 async function probe(cmd: string, args: string[]): Promise<string | null> {
   try {
     const { stdout } = await execFileAsync(cmd, args, {
-      timeout: 15_000,
+      // Generous: a cold CLI start (npm shim → node → cli.js) can take a while
+      // on slow disks; a false "not installed" is worse than a slow probe.
+      timeout: 30_000,
       windowsHide: true,
       // npm/claude are .cmd shims on Windows — they need a shell to launch.
       shell: IS_WIN,
@@ -104,21 +106,44 @@ export async function installClaudeCli(): Promise<SetupActionResult> {
 }
 
 /**
- * Open a visible terminal running `claude /login`. Fire-and-forget: the user
- * completes OAuth in the browser; our credential rescan detects the result.
+ * Providers we can open a login terminal for. The command strings are FIXED —
+ * the provider id is validated against this map and nothing else ever reaches
+ * a shell.
  */
-export async function launchClaudeLogin(): Promise<SetupActionResult> {
-  const status = await checkClaudeCli()
-  if (!status.claudeInstalled) {
-    return { ok: false, detail: 'Claude Code is not installed yet — run Install first.' }
+const LOGIN_COMMANDS: Record<string, { probeCmd: string; loginCmd: string; label: string }> = {
+  claude: { probeCmd: 'claude', loginCmd: 'claude /login', label: 'Claude Code' },
+  codex: { probeCmd: 'codex', loginCmd: 'codex login', label: 'Codex' },
+}
+
+export type LoginProvider = keyof typeof LOGIN_COMMANDS
+
+/**
+ * Open a visible terminal running the provider's login command. Fire-and-forget:
+ * the user completes OAuth in the browser; the app's credential rescan (empty
+ * state) or regular poller (existing account) picks the new token up.
+ */
+export async function launchCliLogin(provider: string = 'claude'): Promise<SetupActionResult> {
+  const entry = LOGIN_COMMANDS[provider]
+  if (!entry) return { ok: false, detail: `Unknown provider: ${provider}` }
+
+  const installed = (await probe(entry.probeCmd, ['--version'])) !== null
+  if (!installed) {
+    return {
+      ok: false,
+      detail:
+        provider === 'claude'
+          ? 'Claude Code is not installed yet — run Install first.'
+          : `The ${entry.label} CLI is not installed.`,
+    }
   }
   try {
+    const cmd = entry.loginCmd
     if (IS_WIN) {
       // Detached cmd.exe gets its own visible console window. cmd resolves the
-      // claude.cmd npm shim and — unlike PowerShell, which resolves claude.ps1 —
+      // .cmd npm shims and — unlike PowerShell, which resolves the .ps1 shims —
       // is immune to ExecutionPolicy blocking scripts. /k keeps the window open
       // so the user can see the login result. Argv is fully fixed.
-      const child = spawn('cmd.exe', ['/k', 'claude /login'], {
+      const child = spawn('cmd.exe', ['/k', cmd], {
         detached: true,
         stdio: 'ignore',
         shell: false,
@@ -128,14 +153,14 @@ export async function launchClaudeLogin(): Promise<SetupActionResult> {
     } else if (process.platform === 'darwin') {
       const child = spawn(
         'osascript',
-        ['-e', 'tell application "Terminal" to do script "claude /login"', '-e', 'tell application "Terminal" to activate'],
+        ['-e', `tell application "Terminal" to do script "${cmd}"`, '-e', 'tell application "Terminal" to activate'],
         { detached: true, stdio: 'ignore' },
       )
       child.unref()
     } else {
       // Best-effort on Linux: x-terminal-emulator is the Debian alternatives
       // entry point; fall back to gnome-terminal.
-      const child = spawn('sh', ['-c', 'x-terminal-emulator -e claude /login || gnome-terminal -- claude /login'], {
+      const child = spawn('sh', ['-c', `x-terminal-emulator -e ${cmd} || gnome-terminal -- ${cmd}`], {
         detached: true,
         stdio: 'ignore',
       })

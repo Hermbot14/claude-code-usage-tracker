@@ -3,6 +3,32 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); this project uses semantic versioning.
 
+## [2.4.0] — 2026-08-12
+
+Fallback-hardening pass over the one-click setup.
+
+### Added
+- **One-click re-login on account cards**: when a Claude or Codex credential is
+  missing/expired, the error now carries a **Sign in** button (opens the
+  provider's login terminal); usage resumes automatically once the poller sees
+  the fresh token.
+- **Codex login support**: the login launcher is provider-parameterized
+  (`claude /login` / `codex login`) against a fixed, validated command map.
+- **npm-missing fallback**: if Node.js/npm isn't available, the install step
+  links to the Node.js download page and the official Claude Code install
+  guide instead of dead-ending.
+- **E2E coverage for onboarding**: new spec asserts the click-through setup
+  guide renders (CLI probe, Sign in, rescan, API-key path) and that scanning
+  converges to an account or clear guidance.
+
+### Fixed
+- "Scan for accounts" now also re-probes the CLI, so installing Claude Code in
+  your own terminal while the app is open updates step 1 without a restart.
+- Sign-in buttons have a 4s cooldown — rapid clicks can no longer spawn a pile
+  of terminals.
+- CLI probe timeout raised 15s → 30s (cold npm-shim starts on slow disks could
+  false-negative as "not installed").
+
 ## [2.3.0] — 2026-08-12
 
 ### Added

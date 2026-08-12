@@ -210,7 +210,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). The most common contribution is **adding
 
 ## 📝 Changelog
 
-See [CHANGELOG.md](CHANGELOG.md). Current: **v2.3.0** — one-click setup (Install + Sign in buttons), first-run reliability (CLI logins re-detected on every launch), renderer CSP, typecheck-gated packaging.
+See [CHANGELOG.md](CHANGELOG.md). Current: **v2.4.0** — one-click setup with full fallbacks (Install + Sign in on cards too, Codex login, npm-missing links), first-run reliability, renderer CSP, typecheck-gated packaging.
 
 ---
 

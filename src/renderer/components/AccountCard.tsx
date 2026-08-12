@@ -129,6 +129,24 @@ export function AccountCard({ account, state, provider, onRemove }: AccountCardP
   const [planDraft, setPlanDraft] = useState('')
   const planInputRef = useRef<HTMLInputElement>(null)
 
+  // One-click re-login for expired/missing CLI credentials. Brief cooldown so
+  // rapid clicks can't spawn a pile of terminals.
+  const [signingIn, setSigningIn] = useState(false)
+  const [signInMsg, setSignInMsg] = useState<string | null>(null)
+  const handleCardSignIn = async () => {
+    setSigningIn(true)
+    try {
+      const res = await window.api.claudeSetup.login(
+        account.provider === 'openai' ? 'codex' : 'claude',
+      )
+      setSignInMsg(res.detail ?? (res.ok ? 'Terminal opened — finish in your browser.' : 'Could not open a terminal.'))
+    } catch (err) {
+      setSignInMsg(err instanceof Error ? err.message : 'Could not open a terminal.')
+    } finally {
+      setTimeout(() => setSigningIn(false), 4000)
+    }
+  }
+
   useEffect(() => {
     if (editingPlan) {
       setPlanDraft(displayPlan ?? '')
@@ -284,24 +302,36 @@ export function AccountCard({ account, state, provider, onRemove }: AccountCardP
               </svg>
               <span style={{ fontSize: 13, color: 'var(--color-semantic-error)', wordBreak: 'break-word' }}>{state.error}</span>
             </div>
-            {/* Actionable recovery for missing/expired CLI logins — the most common
-                first-run failure. Tell the user exactly what to type. */}
+            {/* One-click recovery for missing/expired CLI logins — the most common
+                failure. Opens a terminal running the provider's login command;
+                the regular poller picks the fresh token up within a minute. */}
             {(state.code === 'no_credential' || state.code === 'auth') &&
-              account.provider === 'anthropic' && (
-                <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)', margin: '10px 2px 0', lineHeight: 1.5 }}>
-                  Fix: open a terminal, run{' '}
-                  <code style={{ fontFamily: 'ui-monospace, Consolas, monospace', color: 'var(--color-text-secondary)' }}>claude</code>, type{' '}
-                  <code style={{ fontFamily: 'ui-monospace, Consolas, monospace', color: 'var(--color-text-secondary)' }}>/login</code>{' '}
-                  and finish signing in — then hit Refresh here.
-                </p>
-              )}
-            {(state.code === 'no_credential' || state.code === 'auth') &&
-              account.provider === 'openai' && (
-                <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)', margin: '10px 2px 0', lineHeight: 1.5 }}>
-                  Fix: run{' '}
-                  <code style={{ fontFamily: 'ui-monospace, Consolas, monospace', color: 'var(--color-text-secondary)' }}>codex login</code>{' '}
-                  in a terminal, then hit Refresh here.
-                </p>
+              (account.provider === 'anthropic' || account.provider === 'openai') && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', margin: '10px 2px 0' }}>
+                  <button
+                    onClick={handleCardSignIn}
+                    disabled={signingIn}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 'var(--radius-md)',
+                      border: 'none',
+                      backgroundColor: 'var(--color-accent-primary)',
+                      color: 'var(--color-text-inverse)',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: signingIn ? 'wait' : 'pointer',
+                      opacity: signingIn ? 0.6 : 1,
+                    }}
+                  >
+                    {signingIn ? 'Opening…' : 'Sign in'}
+                  </button>
+                  <span style={{ fontSize: 12, color: 'var(--color-text-tertiary)', lineHeight: 1.5 }}>
+                    {signInMsg ??
+                      (account.provider === 'anthropic'
+                        ? 'opens a terminal running claude /login — usage resumes automatically'
+                        : 'opens a terminal running codex login — usage resumes automatically')}
+                  </span>
+                </div>
               )}
           </div>
         ) : (

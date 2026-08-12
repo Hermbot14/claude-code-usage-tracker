@@ -158,13 +158,18 @@ export function AccountsView({ onOpenSettings }: AccountsViewProps) {
     }
   }
 
+  const [loginBusy, setLoginBusy] = useState(false)
   const handleLogin = async () => {
+    setLoginBusy(true)
     setLoginMsg(null)
     try {
-      const res = await window.api.claudeSetup.login()
+      const res = await window.api.claudeSetup.login('claude')
       setLoginMsg(res.detail ?? (res.ok ? 'Terminal opened.' : 'Could not open a terminal.'))
     } catch (err) {
       setLoginMsg(err instanceof Error ? err.message : 'Could not open a terminal.')
+    } finally {
+      // Cooldown so rapid clicks can't spawn a pile of terminals.
+      setTimeout(() => setLoginBusy(false), 4000)
     }
   }
 
@@ -172,7 +177,13 @@ export function AccountsView({ onOpenSettings }: AccountsViewProps) {
     setScanning(true)
     setScanMessage(null)
     try {
-      const added = await discoverAndMergeLocalAccounts({ rescanDismissed: true })
+      // Re-probe the CLI too — the user may have installed it in their own
+      // terminal since the empty state first rendered.
+      const [added, status] = await Promise.all([
+        discoverAndMergeLocalAccounts({ rescanDismissed: true }),
+        window.api.claudeSetup.check().catch(() => null),
+      ])
+      if (status) setCliStatus(status)
       if (added === 0) {
         setScanMessage(
           'No CLI login found yet. Finish the steps above, then scan again — the app also rescans automatically every 10 seconds.',
@@ -224,6 +235,29 @@ export function AccountsView({ onOpenSettings }: AccountsViewProps) {
                     {installMsg}
                   </span>
                 )}
+                {/* npm missing → don't dead-end: link to Node.js and the official
+                    install guide (opened externally via the window-open handler). */}
+                {cliStatus !== null && !cliStatus.npmAvailable && (
+                  <span style={{ display: 'block', fontSize: 12, marginTop: 4 }}>
+                    <a
+                      href="https://nodejs.org/en/download"
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ color: 'var(--color-accent-primary)', fontWeight: 600 }}
+                    >
+                      Get Node.js
+                    </a>
+                    <span style={{ color: 'var(--color-text-tertiary)' }}> · </span>
+                    <a
+                      href="https://code.claude.com/docs"
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ color: 'var(--color-accent-primary)', fontWeight: 600 }}
+                    >
+                      Claude Code install guide
+                    </a>
+                  </span>
+                )}
                 <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 4 }}>
                   or run <Code>npm install -g @anthropic-ai/claude-code</Code> yourself
                 </span>
@@ -232,8 +266,12 @@ export function AccountsView({ onOpenSettings }: AccountsViewProps) {
           </SetupStep>
           <SetupStep n={2}>
             Sign in to Claude
-            <StepButton onClick={handleLogin} disabled={cliStatus !== null && !cliStatus.claudeInstalled}>
-              Sign in
+            <StepButton
+              onClick={handleLogin}
+              busy={loginBusy}
+              disabled={cliStatus !== null && !cliStatus.claudeInstalled}
+            >
+              {loginBusy ? 'Opening…' : 'Sign in'}
             </StepButton>
             {loginMsg && (
               <span style={{ display: 'block', fontSize: 12, color: 'var(--color-text-tertiary)', marginTop: 4 }}>

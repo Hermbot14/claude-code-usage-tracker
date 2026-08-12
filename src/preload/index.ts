@@ -54,7 +54,7 @@ const api = {
   claudeSetup: {
     check: () => ipcRenderer.invoke('claude-setup-check'),
     install: () => ipcRenderer.invoke('claude-setup-install'),
-    login: () => ipcRenderer.invoke('claude-setup-login'),
+    login: (provider?: 'claude' | 'codex') => ipcRenderer.invoke('claude-setup-login', provider),
   },
 
   // Sync window background colour with current CSS theme (prevents resize flash)

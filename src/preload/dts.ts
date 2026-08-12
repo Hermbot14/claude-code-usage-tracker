@@ -47,7 +47,7 @@ declare global {
           npmAvailable: boolean
         }>
         install: () => Promise<{ ok: boolean; detail?: string }>
-        login: () => Promise<{ ok: boolean; detail?: string }>
+        login: (provider?: 'claude' | 'codex') => Promise<{ ok: boolean; detail?: string }>
       }
       setWindowBackground: (color: string) => Promise<{ success: boolean }>
       setOverlayMode: (enabled: boolean) => Promise<{ success: boolean }>
