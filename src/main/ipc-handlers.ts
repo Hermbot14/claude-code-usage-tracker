@@ -1,6 +1,7 @@
 import { ipcMain, app, BrowserWindow, screen } from 'electron'
 import { StoreService } from './store-service'
 import { getCostSummary } from './cost-service'
+import { checkClaudeCli, installClaudeCli, launchClaudeLogin } from './claude-setup'
 import type { UsageData } from '../renderer/types'
 import {
   fetchAccountUsage,
@@ -91,6 +92,11 @@ export function registerIpcHandlers(
     }
     return found.map((f) => ({ provider: sourceToProvider[f.source] ?? 'unknown', email: f.email ?? null }))
   })
+
+  // ── One-click Claude Code setup (install CLI / open login terminal) ──
+  ipcMain.handle('claude-setup-check', async () => checkClaudeCli())
+  ipcMain.handle('claude-setup-install', async () => installClaudeCli())
+  ipcMain.handle('claude-setup-login', async () => launchClaudeLogin())
 
   // Store operations
   ipcMain.handle('store-get', async (_event, key: string, defaultValue?: unknown) => {

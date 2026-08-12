@@ -3,6 +3,22 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); this project uses semantic versioning.
 
+## [2.3.0] — 2026-08-12
+
+### Added
+- **One-click setup**: the first-run guide now has an **Install now** button
+  (runs `npm install -g @anthropic-ai/claude-code` for you, with status
+  feedback) and a **Sign in** button (opens a terminal running
+  `claude /login`; the account card appears automatically once OAuth
+  completes). The CLI is auto-detected — an installed CLI shows a green
+  check with its version.
+- New IPC surface `claude-setup-check` / `claude-setup-install` /
+  `claude-setup-login` backed by `src/main/claude-setup.ts`. All commands are
+  fixed argv — no user input ever reaches a shell.
+- Windows note: the login terminal uses `cmd.exe` deliberately — PowerShell
+  resolves the npm shim to `claude.ps1`, which ExecutionPolicy blocks on many
+  machines; `cmd` resolves `claude.cmd` and always works.
+
 ## [2.2.0] — 2026-08-12
 
 First-run reliability release — fixes the "installed it and nothing shows up" trap.

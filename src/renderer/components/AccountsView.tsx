@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useUsageStore } from '@stores/useUsageStore'
 import { AccountCard } from './AccountCard'
 import { StatusSummary } from './StatusSummary'
@@ -7,8 +7,16 @@ interface AccountsViewProps {
   onOpenSettings: () => void
 }
 
-/** One numbered step in the first-run setup guide. */
-function SetupStep({ n, children }: { n: number; children: React.ReactNode }) {
+/** One actionable step row in the first-run setup guide. */
+function SetupStep({
+  n,
+  done,
+  children,
+}: {
+  n: number
+  done?: boolean
+  children: React.ReactNode
+}) {
   return (
     <li style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
       <span
@@ -17,7 +25,7 @@ function SetupStep({ n, children }: { n: number; children: React.ReactNode }) {
           height: 22,
           flexShrink: 0,
           borderRadius: '50%',
-          backgroundColor: 'var(--color-accent-primary)',
+          backgroundColor: done ? 'var(--color-semantic-success)' : 'var(--color-accent-primary)',
           color: 'var(--color-text-inverse)',
           fontSize: 12,
           fontWeight: 700,
@@ -26,12 +34,47 @@ function SetupStep({ n, children }: { n: number; children: React.ReactNode }) {
           justifyContent: 'center',
         }}
       >
-        {n}
+        {done ? '✓' : n}
       </span>
-      <span style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: '22px' }}>
+      <span style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: '22px', flex: 1, minWidth: 0 }}>
         {children}
       </span>
     </li>
+  )
+}
+
+/** Small inline action button used by the setup steps. */
+function StepButton({
+  onClick,
+  busy,
+  disabled,
+  children,
+}: {
+  onClick: () => void
+  busy?: boolean
+  disabled?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={busy || disabled}
+      style={{
+        padding: '6px 12px',
+        marginLeft: 8,
+        borderRadius: 'var(--radius-md)',
+        border: 'none',
+        backgroundColor: 'var(--color-accent-primary)',
+        color: 'var(--color-text-inverse)',
+        fontSize: 12,
+        fontWeight: 600,
+        cursor: busy || disabled ? 'wait' : 'pointer',
+        opacity: busy || disabled ? 0.6 : 1,
+        verticalAlign: 'middle',
+      }}
+    >
+      {children}
+    </button>
   )
 }
 
@@ -72,6 +115,59 @@ export function AccountsView({ onOpenSettings }: AccountsViewProps) {
   const [scanning, setScanning] = useState(false)
   const [scanMessage, setScanMessage] = useState<string | null>(null)
 
+  // One-click setup state. cliStatus === null → probe still running.
+  const [cliStatus, setCliStatus] = useState<{
+    claudeInstalled: boolean
+    claudeVersion: string | null
+    npmAvailable: boolean
+  } | null>(null)
+  const [installing, setInstalling] = useState(false)
+  const [installMsg, setInstallMsg] = useState<string | null>(null)
+  const [loginMsg, setLoginMsg] = useState<string | null>(null)
+
+  const empty = accounts.length === 0
+
+  // Probe for the CLI whenever the empty state is shown (cheap, local).
+  useEffect(() => {
+    if (!empty) return
+    let cancelled = false
+    window.api.claudeSetup
+      .check()
+      .then((s) => {
+        if (!cancelled) setCliStatus(s)
+      })
+      .catch(() => {
+        if (!cancelled) setCliStatus({ claudeInstalled: false, claudeVersion: null, npmAvailable: false })
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [empty])
+
+  const handleInstall = async () => {
+    setInstalling(true)
+    setInstallMsg(null)
+    try {
+      const res = await window.api.claudeSetup.install()
+      setInstallMsg(res.detail ?? (res.ok ? 'Installed.' : 'Install failed.'))
+      if (res.ok) setCliStatus(await window.api.claudeSetup.check())
+    } catch (err) {
+      setInstallMsg(err instanceof Error ? err.message : 'Install failed.')
+    } finally {
+      setInstalling(false)
+    }
+  }
+
+  const handleLogin = async () => {
+    setLoginMsg(null)
+    try {
+      const res = await window.api.claudeSetup.login()
+      setLoginMsg(res.detail ?? (res.ok ? 'Terminal opened.' : 'Could not open a terminal.'))
+    } catch (err) {
+      setLoginMsg(err instanceof Error ? err.message : 'Could not open a terminal.')
+    }
+  }
+
   const handleRescan = async () => {
     setScanning(true)
     setScanMessage(null)
@@ -103,20 +199,54 @@ export function AccountsView({ onOpenSettings }: AccountsViewProps) {
         <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)', margin: '0 0 16px' }}>
           Usage Tracker reads the login your Claude Code CLI already has — no API key to paste.
         </p>
-        <ol style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10, padding: 0, margin: '0 0 18px' }}>
-          <SetupStep n={1}>
-            Install Claude Code if you haven&apos;t:
-            <Code block>npm install -g @anthropic-ai/claude-code</Code>
+        <ol style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12, padding: 0, margin: '0 0 18px' }}>
+          <SetupStep n={1} done={cliStatus?.claudeInstalled === true}>
+            {cliStatus === null ? (
+              <>Checking for the Claude Code CLI…</>
+            ) : cliStatus.claudeInstalled ? (
+              <>
+                Claude Code is installed
+                {cliStatus.claudeVersion ? (
+                  // "2.1.215 (Claude Code)" → show just "2.1.215"
+                  <span style={{ color: 'var(--color-text-tertiary)' }}>
+                    {' '}(v{cliStatus.claudeVersion.split(' ')[0]})
+                  </span>
+                ) : null}
+              </>
+            ) : (
+              <>
+                Install Claude Code
+                <StepButton onClick={handleInstall} busy={installing}>
+                  {installing ? 'Installing…' : 'Install now'}
+                </StepButton>
+                {installMsg && (
+                  <span style={{ display: 'block', fontSize: 12, color: 'var(--color-text-tertiary)', marginTop: 4, whiteSpace: 'pre-wrap' }}>
+                    {installMsg}
+                  </span>
+                )}
+                <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 4 }}>
+                  or run <Code>npm install -g @anthropic-ai/claude-code</Code> yourself
+                </span>
+              </>
+            )}
           </SetupStep>
           <SetupStep n={2}>
-            Open a terminal and run <Code>claude</Code>
-          </SetupStep>
-          <SetupStep n={3}>
-            Type <Code>/login</Code> and finish signing in via your browser
+            Sign in to Claude
+            <StepButton onClick={handleLogin} disabled={cliStatus !== null && !cliStatus.claudeInstalled}>
+              Sign in
+            </StepButton>
+            {loginMsg && (
+              <span style={{ display: 'block', fontSize: 12, color: 'var(--color-text-tertiary)', marginTop: 4 }}>
+                {loginMsg}
+              </span>
+            )}
+            <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 4 }}>
+              opens a terminal running <Code>claude /login</Code> — finish in your browser
+            </span>
           </SetupStep>
         </ol>
         <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', margin: '0 0 16px' }}>
-          That&apos;s it — your account appears here automatically within a few seconds of logging in.
+          That&apos;s it — your account appears here automatically within a few seconds of signing in.
         </p>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           <button

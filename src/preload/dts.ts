@@ -40,6 +40,15 @@ declare global {
       minimizeToTray: () => Promise<{ success: boolean }>
       getAppVersion: () => Promise<string>
       getCostSummary: () => Promise<CostSummary>
+      claudeSetup: {
+        check: () => Promise<{
+          claudeInstalled: boolean
+          claudeVersion: string | null
+          npmAvailable: boolean
+        }>
+        install: () => Promise<{ ok: boolean; detail?: string }>
+        login: () => Promise<{ ok: boolean; detail?: string }>
+      }
       setWindowBackground: (color: string) => Promise<{ success: boolean }>
       setOverlayMode: (enabled: boolean) => Promise<{ success: boolean }>
       setClickThrough: (enabled: boolean) => Promise<{ success: boolean }>

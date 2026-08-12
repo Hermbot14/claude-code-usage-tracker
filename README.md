@@ -54,19 +54,19 @@ A portable build (`Usage Tracker-Portable-<version>-x64.exe`, no install needed)
 
 ### First-time setup — connect Claude Code (2 minutes)
 
-Usage Tracker reads the OAuth login your **Claude Code CLI** already has. No API key to paste — just make sure you're logged in:
+Usage Tracker reads the OAuth login your **Claude Code CLI** already has. No API key to paste — and the app walks you through it with **one-click buttons** on the home screen:
 
-1. Install Claude Code if you haven't:
-   ```bash
-   npm install -g @anthropic-ai/claude-code
-   ```
-2. Open a terminal and run:
-   ```bash
-   claude
-   ```
-3. Type `/login` and finish signing in via your browser.
+1. **Install now** — installs the Claude Code CLI for you (`npm install -g @anthropic-ai/claude-code`). If it's already installed you'll see a green check instead.
+2. **Sign in** — opens a terminal running `claude /login`; finish signing in via your browser.
 
 **That's it.** Usage Tracker detects the login automatically — your account card appears within a few seconds (the app rescans every 10 s while empty; there's also a **Scan for accounts** button). It works in either order: install the app before or after logging in.
+
+Prefer the terminal? The same steps by hand:
+
+```bash
+npm install -g @anthropic-ai/claude-code
+claude          # then type /login and finish in the browser
+```
 
 Other providers:
 - **OpenAI Codex** — run `codex login`; detected the same way.
@@ -210,7 +210,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). The most common contribution is **adding
 
 ## 📝 Changelog
 
-See [CHANGELOG.md](CHANGELOG.md). Current: **v2.2.0** — first-run reliability (CLI logins are now re-detected on every launch and while the account list is empty), in-app setup guide, renderer CSP, typecheck-gated packaging.
+See [CHANGELOG.md](CHANGELOG.md). Current: **v2.3.0** — one-click setup (Install + Sign in buttons), first-run reliability (CLI logins re-detected on every launch), renderer CSP, typecheck-gated packaging.
 
 ---
 

@@ -50,6 +50,13 @@ const api = {
   getCostSummary: () =>
     ipcRenderer.invoke('get-cost-summary'),
 
+  // One-click Claude Code setup (first-run guide buttons)
+  claudeSetup: {
+    check: () => ipcRenderer.invoke('claude-setup-check'),
+    install: () => ipcRenderer.invoke('claude-setup-install'),
+    login: () => ipcRenderer.invoke('claude-setup-login'),
+  },
+
   // Sync window background colour with current CSS theme (prevents resize flash)
   setWindowBackground: (color: string) =>
     ipcRenderer.invoke('set-window-background', color),
