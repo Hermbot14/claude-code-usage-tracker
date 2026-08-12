@@ -218,6 +218,8 @@ See [CHANGELOG.md](CHANGELOG.md). Current: **v2.4.0** — one-click setup with f
 
 The usage-tracking engine was extracted and generalized from **[Aperant](https://github.com/AndyMik90/Aperant)** (formerly "Auto-Claude") — an autonomous multi-agent coding framework.
 
+The transcript-based cost fallback (pricing per-message token usage straight from `~/.claude/projects` session files) follows the approach pioneered by **[claude-usage-widget](https://github.com/bozdemir/claude-usage-widget)** (MIT) — a great Python/Qt Claude usage overlay worth checking out.
+
 ---
 
 ## 📜 License

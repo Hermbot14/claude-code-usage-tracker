@@ -3,6 +3,17 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); this project uses semantic versioning.
 
+## [2.5.0] — 2026-08-12
+
+### Added
+- **Cost panel now works for every user**: when the ECC cost-ledger hook isn't
+  installed (i.e. for everyone but the original dev machine), costs are
+  computed directly from stock Claude Code session transcripts
+  (`~/.claude/projects/*/*.jsonl`) — per-message token usage priced with
+  published API rates, deduplicated by request id so resumed sessions aren't
+  double-billed, with a per-file mtime cache so repeat polls stay cheap.
+  Approach credited to [claude-usage-widget](https://github.com/bozdemir/claude-usage-widget).
+
 ## [2.4.0] — 2026-08-12
 
 Fallback-hardening pass over the one-click setup.
