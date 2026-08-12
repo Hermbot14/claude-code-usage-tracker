@@ -35,17 +35,29 @@ function SetupStep({ n, children }: { n: number; children: React.ReactNode }) {
   )
 }
 
-function Code({ children }: { children: React.ReactNode }) {
+function Code({ children, block }: { children: React.ReactNode; block?: boolean }) {
   return (
     <code
       style={{
         backgroundColor: 'var(--color-background-primary)',
         border: '1px solid var(--color-border-default)',
         borderRadius: 4,
-        padding: '1px 6px',
+        padding: block ? '4px 8px' : '1px 6px',
         fontSize: 12,
         fontFamily: 'ui-monospace, Consolas, monospace',
         color: 'var(--color-text-primary)',
+        // Block variant: long commands (e.g. the npm install line) get their own
+        // line and scroll instead of wrapping mid-token into confusing fragments.
+        ...(block
+          ? {
+              display: 'block',
+              marginTop: 6,
+              whiteSpace: 'nowrap' as const,
+              overflowX: 'auto' as const,
+              maxWidth: '100%',
+              width: 'fit-content',
+            }
+          : {}),
       }}
     >
       {children}
@@ -93,7 +105,8 @@ export function AccountsView({ onOpenSettings }: AccountsViewProps) {
         </p>
         <ol style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10, padding: 0, margin: '0 0 18px' }}>
           <SetupStep n={1}>
-            Install Claude Code if you haven&apos;t: <Code>npm install -g @anthropic-ai/claude-code</Code>
+            Install Claude Code if you haven&apos;t:
+            <Code block>npm install -g @anthropic-ai/claude-code</Code>
           </SetupStep>
           <SetupStep n={2}>
             Open a terminal and run <Code>claude</Code>
