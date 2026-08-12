@@ -1,6 +1,6 @@
 {
   "name": "usage-tracker",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Real-time coding-plan usage monitoring across providers (Claude Code, Z.AI/GLM, Zhipu, OpenAI Codex)",
   "main": "out/main/index.cjs",
   "author": "Z-AI Usage Tracker Contributors",

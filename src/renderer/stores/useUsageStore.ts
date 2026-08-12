@@ -41,6 +41,13 @@ interface UsageStore {
   setAccounts: (accounts: AccountConfig[]) => void
   addAccount: (account: AccountConfig) => Promise<void>
   removeAccount: (id: string) => Promise<void>
+  /**
+   * Re-detect CLI logins (Claude Code / Codex / Qwen) and merge any new ones
+   * into the account list. Runs on every launch and on demand ("Scan again"),
+   * so logging in AFTER installing the app is picked up without a reinstall.
+   * Returns the number of accounts added.
+   */
+  discoverAndMergeLocalAccounts: (opts?: { rescanDismissed?: boolean }) => Promise<number>
   setAccountUsage: (id: string, state: AccountUsageState) => void
   setProviders: (providers: ProviderInfo[]) => void
   setLocalAccounts: (local: LocalAccountInfo[]) => void
@@ -203,6 +210,16 @@ export const useUsageStore = create<UsageStore>((set, get) => ({
       await window.api.store.set('accounts', metaOnly)
       if (account.apiKey) {
         await window.api.store.setSecret(`account-key-${account.id}`, account.apiKey)
+      } else {
+        // Manually re-adding a CLI account revokes any earlier opt-out.
+        const dismissed = ((await window.api.store.get('dismissedLocalAccounts', [])) ||
+          []) as string[]
+        if (dismissed.includes(account.provider)) {
+          await window.api.store.set(
+            'dismissedLocalAccounts',
+            dismissed.filter((p) => p !== account.provider),
+          )
+        }
       }
     } catch (error) {
       console.error('Failed to persist accounts:', error)
@@ -210,6 +227,7 @@ export const useUsageStore = create<UsageStore>((set, get) => ({
   },
 
   removeAccount: async (id) => {
+    const removed = get().accounts.find((a) => a.id === id)
     const accounts = get().accounts.filter((a) => a.id !== id)
     const accountUsage = { ...get().accountUsage }
     delete accountUsage[id]
@@ -218,8 +236,58 @@ export const useUsageStore = create<UsageStore>((set, get) => ({
       const metaOnly = accounts.map(({ apiKey: _k, ...meta }) => meta)
       await window.api.store.set('accounts', metaOnly)
       await window.api.store.deleteSecret(`account-key-${id}`)
+      // Removing an auto-detected CLI account is an explicit opt-out — remember
+      // it so the launch-time re-scan doesn't immediately resurrect the card.
+      if (removed && !removed.apiKey && removed.id === `${removed.provider}-local`) {
+        const dismissed = ((await window.api.store.get('dismissedLocalAccounts', [])) ||
+          []) as string[]
+        if (!dismissed.includes(removed.provider)) {
+          await window.api.store.set('dismissedLocalAccounts', [...dismissed, removed.provider])
+        }
+      }
     } catch (error) {
       console.error('Failed to persist accounts:', error)
+    }
+  },
+
+  discoverAndMergeLocalAccounts: async (opts) => {
+    try {
+      const [providers, local] = await Promise.all([
+        window.api.listProviders(),
+        window.api.discoverLocalAccounts(),
+      ])
+      set({ providers, localAccounts: local })
+
+      let dismissed = ((await window.api.store.get('dismissedLocalAccounts', [])) ||
+        []) as string[]
+      // An explicit "Scan again" means the user WANTS accounts found — clear
+      // any earlier opt-outs so removed cards can come back.
+      if (opts?.rescanDismissed && dismissed.length) {
+        dismissed = []
+        await window.api.store.set('dismissedLocalAccounts', [])
+      }
+
+      const { accounts } = get()
+      const labelFor = (p: string) => providers.find((x) => x.id === p)?.label ?? p
+      const additions: AccountConfig[] = local
+        .filter((loc) => !accounts.some((a) => a.provider === loc.provider))
+        .filter((loc) => !dismissed.includes(loc.provider))
+        .map((loc) => ({
+          id: `${loc.provider}-local`,
+          name: labelFor(loc.provider),
+          provider: loc.provider,
+        }))
+
+      if (additions.length > 0) {
+        const next = [...accounts, ...additions]
+        set({ accounts: next })
+        const metaOnly = next.map(({ apiKey: _k, ...meta }) => meta)
+        await window.api.store.set('accounts', metaOnly)
+      }
+      return additions.length
+    } catch (error) {
+      console.error('Failed to discover local accounts:', error)
+      return 0
     }
   },
 

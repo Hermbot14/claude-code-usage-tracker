@@ -277,11 +277,32 @@ export function AccountCard({ account, state, provider, onRemove }: AccountCardP
         {!state || state.status === 'loading' ? (
           <div style={{ height: 88, borderRadius: 'var(--radius-md)' }} className="skeleton-loader" />
         ) : state.status === 'error' ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', backgroundColor: 'var(--color-semantic-error-light)', borderRadius: 'var(--radius-md)' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-semantic-error)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-            <span style={{ fontSize: 13, color: 'var(--color-semantic-error)', wordBreak: 'break-word' }}>{state.error}</span>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', backgroundColor: 'var(--color-semantic-error-light)', borderRadius: 'var(--radius-md)' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-semantic-error)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span style={{ fontSize: 13, color: 'var(--color-semantic-error)', wordBreak: 'break-word' }}>{state.error}</span>
+            </div>
+            {/* Actionable recovery for missing/expired CLI logins — the most common
+                first-run failure. Tell the user exactly what to type. */}
+            {(state.code === 'no_credential' || state.code === 'auth') &&
+              account.provider === 'anthropic' && (
+                <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)', margin: '10px 2px 0', lineHeight: 1.5 }}>
+                  Fix: open a terminal, run{' '}
+                  <code style={{ fontFamily: 'ui-monospace, Consolas, monospace', color: 'var(--color-text-secondary)' }}>claude</code>, type{' '}
+                  <code style={{ fontFamily: 'ui-monospace, Consolas, monospace', color: 'var(--color-text-secondary)' }}>/login</code>{' '}
+                  and finish signing in — then hit Refresh here.
+                </p>
+              )}
+            {(state.code === 'no_credential' || state.code === 'auth') &&
+              account.provider === 'openai' && (
+                <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)', margin: '10px 2px 0', lineHeight: 1.5 }}>
+                  Fix: run{' '}
+                  <code style={{ fontFamily: 'ui-monospace, Consolas, monospace', color: 'var(--color-text-secondary)' }}>codex login</code>{' '}
+                  in a terminal, then hit Refresh here.
+                </p>
+              )}
           </div>
         ) : (
           <>

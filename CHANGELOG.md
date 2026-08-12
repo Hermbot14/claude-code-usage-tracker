@@ -3,6 +3,44 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); this project uses semantic versioning.
 
+## [2.2.0] — 2026-08-12
+
+First-run reliability release — fixes the "installed it and nothing shows up" trap.
+
+### Fixed
+- **CLI logins are now re-detected on every launch** (and merged into the account
+  list). Previously detection ran only on the very first launch and persisted the
+  result — installing the app *before* logging into Claude Code left the account
+  list permanently empty, even after `/login`. This was the root cause of
+  "not working when installed" reports.
+- Removing an auto-detected account is remembered (it won't resurrect on the next
+  launch); re-adding it or pressing **Scan for accounts** clears the opt-out.
+- `'throttled'` was missing from the fetch-error code union, silently dead-typing
+  the throttle-handling branch (latent, now typed).
+
+### Added
+- **In-app first-run setup guide**: the empty state now walks through
+  `npm install -g @anthropic-ai/claude-code` → `claude` → `/login`, with a
+  **Scan for accounts** button; the app also auto-rescans every 10 s while the
+  account list is empty, so the card appears moments after login — no restart.
+- **Actionable error hints** on account cards: missing/expired Claude or Codex
+  credentials now show the exact commands to run (`claude` + `/login`,
+  `codex login`) instead of just the raw error.
+- **Renderer Content-Security-Policy** — everything locked to `'self'`; the
+  renderer performs no direct network requests (all provider calls go through
+  the main process over IPC).
+- `npm run typecheck`, wired as a `prepackage` gate so packaging always ships a
+  freshly typechecked + rebuilt bundle.
+
+### Changed
+- Installer and portable artifacts now have distinct names
+  (`Usage Tracker-Setup-…` / `Usage Tracker-Portable-…`) — they previously
+  overwrote each other.
+- Proper multi-resolution app icon (the old `icon.ico` was 16×16, which
+  electron-builder rejects).
+- README: consumer install path, 2-minute Claude Code OAuth setup, and a
+  troubleshooting table.
+
 ## [2.1.0] — 2026-06-09
 
 ### Added

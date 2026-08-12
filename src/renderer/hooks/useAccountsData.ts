@@ -29,8 +29,6 @@ export function useAccountsData() {
     accounts,
     setAccounts,
     setAccountUsage,
-    setProviders,
-    setLocalAccounts,
     setCurrentUsage,
     appendHistory,
   } = useUsageStore()
@@ -123,13 +121,6 @@ export function useAccountsData() {
           useUsageStore.getState().initializeFromStorage(storedSettings)
         }
 
-        const [providers, local] = await Promise.all([
-          window.api.listProviders(),
-          window.api.discoverLocalAccounts(),
-        ])
-        setProviders(providers)
-        setLocalAccounts(local)
-
         // Hydrate last-good usage from disk so cards render data immediately,
         // before the first (potentially rate-limited) network poll returns.
         const cachedUsage = ((await window.api.store.get('lastUsage', {})) || {}) as Record<string, ProviderUsage>
@@ -166,21 +157,25 @@ export function useAccountsData() {
             await window.api.store.set('accounts', metaOnly)
           }
         } else {
-          // First run — seed from the legacy single-key setting + detected logins.
-          const seeded: AccountConfig[] = []
+          // First run — seed from the legacy single-key setting (CLI logins are
+          // merged below, on this and every launch).
           const s = useUsageStore.getState().settings
           if (s.apiKey) {
-            seeded.push({ id: 'zai-default', name: 'Z.AI GLM', provider: 'zai', apiKey: s.apiKey, baseUrl: s.baseUrl })
+            const seeded: AccountConfig[] = [
+              { id: 'zai-default', name: 'Z.AI GLM', provider: 'zai', apiKey: s.apiKey, baseUrl: s.baseUrl },
+            ]
+            setAccounts(seeded)
+            hydrate(seeded)
+            await window.api.store.set('accounts', seeded)
           }
-          const labelFor = (p: string) => providers.find((x) => x.id === p)?.label ?? p
-          for (const loc of local) {
-            if (seeded.some((a) => a.provider === loc.provider)) continue
-            seeded.push({ id: `${loc.provider}-local`, name: labelFor(loc.provider), provider: loc.provider })
-          }
-          setAccounts(seeded)
-          hydrate(seeded)
-          await window.api.store.set('accounts', seeded)
         }
+
+        // ALWAYS re-detect CLI logins and merge new ones. This is the fix for
+        // the install-before-login trap: the old code only detected logins on
+        // the very first launch and persisted whatever it found (possibly []),
+        // so logging into Claude Code after installing never surfaced an
+        // account until the user wiped the app's data.
+        await useUsageStore.getState().discoverAndMergeLocalAccounts()
       } catch (error) {
         console.error('Failed to bootstrap accounts:', error)
       }
@@ -188,6 +183,17 @@ export function useAccountsData() {
     bootstrap()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // While no account is configured, quietly re-scan for CLI logins every few
+  // seconds — a user following the setup guide sees their account appear the
+  // moment `/login` completes, without restarting the app.
+  useEffect(() => {
+    if (accounts.length > 0) return
+    const id = setInterval(() => {
+      useUsageStore.getState().discoverAndMergeLocalAccounts()
+    }, 10_000)
+    return () => clearInterval(id)
+  }, [accounts.length])
 
   // Poll on interval + whenever the account set changes.
   useEffect(() => {

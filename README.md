@@ -22,7 +22,7 @@ Each provider is normalized to one shape — a short **session** window and a lo
 - **Smart rate-limit handling** — per-provider minimum poll interval and a cooldown that serves the last good snapshot instead of hammering an endpoint (Claude/Codex usage endpoints are sensitive to frequent polling).
 - **System tray + taskbar overlay** — color-coded status and a percentage badge for the most-constrained account.
 - **Alerts** — desktop notifications at configurable thresholds (80 / 90 / 100%).
-- **Multi-theme** — 7 themes × light/dark.
+- **Multi-theme** — 10 themes × light/dark.
 - **Accessible** — keyboard navigation, screen-reader-friendly dialogs.
 
 ---
@@ -44,11 +44,46 @@ Each provider is normalized to one shape — a short **session** window and a lo
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Node.js 20+ (22/24 fine)
-- npm
+### Option A — Install the app (recommended)
 
-### Install & run
+1. Download **`Usage Tracker-Setup-<version>-x64.exe`** from [Releases](https://github.com/Hermbot14/Usage-Tracker/releases) (or build it yourself, below) and run it.
+   > Windows SmartScreen may warn because the build is unsigned — click **More info → Run anyway**.
+2. Launch **Usage Tracker** from the Start menu or desktop shortcut.
+
+A portable build (`Usage Tracker-Portable-<version>-x64.exe`, no install needed) is also produced.
+
+### First-time setup — connect Claude Code (2 minutes)
+
+Usage Tracker reads the OAuth login your **Claude Code CLI** already has. No API key to paste — just make sure you're logged in:
+
+1. Install Claude Code if you haven't:
+   ```bash
+   npm install -g @anthropic-ai/claude-code
+   ```
+2. Open a terminal and run:
+   ```bash
+   claude
+   ```
+3. Type `/login` and finish signing in via your browser.
+
+**That's it.** Usage Tracker detects the login automatically — your account card appears within a few seconds (the app rescans every 10 s while empty; there's also a **Scan for accounts** button). It works in either order: install the app before or after logging in.
+
+Other providers:
+- **OpenAI Codex** — run `codex login`; detected the same way.
+- **Z.AI / Zhipu** — Settings → Accounts → pick the provider → paste your API key (base URL is pre-filled).
+
+#### Troubleshooting
+
+| Symptom | Fix |
+|---------|-----|
+| "No Claude Code credentials found" | You're not logged in (or logged out). Run `claude`, type `/login`, sign in, then hit **Refresh** on the card. |
+| Card shows an auth error after weeks of use | Your refresh token expired. Same fix: `claude` → `/login`. |
+| No account card ever appears | Click **Scan for accounts** on the home screen; confirm `~/.claude/.credentials.json` exists after logging in. |
+| Closing the window "quits" nothing | The app minimizes to the **system tray** — right-click the tray icon to quit. |
+
+### Option B — Run from source
+
+Prerequisites: Node.js 20+ (22/24 fine) and npm.
 
 ```bash
 git clone https://github.com/Hermbot14/Usage-Tracker.git
@@ -57,18 +92,15 @@ npm install
 npm run dev
 ```
 
-### Adding accounts
-- **Claude Code / Codex** — if you're already logged into the CLI, the app detects it automatically; open **Settings → Accounts**, pick the provider, and it adds with no key needed.
-- **Z.AI / Zhipu** — Settings → Accounts → pick the provider → paste your API key (base URL is pre-filled).
-
 ### Scripts
 
 ```bash
 npm run dev        # dev mode (hot reload)
+npm run typecheck  # strict TypeScript check (also gates packaging)
 npm run build      # production build (electron-vite)
 npm run preview    # build + launch
 npm run test:e2e   # Playwright Electron E2E (builds first, launches the app)
-npm run package    # Windows installer + portable (electron-builder)
+npm run package    # typecheck + build + Windows installer & portable (electron-builder)
 ```
 
 ---
@@ -163,7 +195,7 @@ This builds the app, launches it in an isolated `--user-data-dir` (so it never c
 |---------|---------|-------|
 | Refresh interval | 5s | Slider 10s–5min; Claude/Codex are throttled to ≥60s regardless |
 | Alert thresholds | 80 / 90 / 100% | Desktop notifications |
-| Theme / mode | Default / System | 7 themes × light/dark |
+| Theme / mode | Default / System | 10 themes × light/dark |
 | Overlay mode | off | Compact always-on-top corner overlay |
 
 Accounts and settings are persisted in the Electron `userData` directory. Local OAuth tokens are read from the provider CLI's own credential store (`~/.claude`, `~/.codex`) — the app does not copy them into its own config.
@@ -178,7 +210,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). The most common contribution is **adding
 
 ## 📝 Changelog
 
-See [CHANGELOG.md](CHANGELOG.md). Current: **v2.0.0** — multi-provider revamp (Claude Code, Z.AI/GLM, Zhipu, Codex), provider registry, local-login auto-detection + Claude token auto-refresh, multi-account UI, Playwright E2E.
+See [CHANGELOG.md](CHANGELOG.md). Current: **v2.2.0** — first-run reliability (CLI logins are now re-detected on every launch and while the account list is empty), in-app setup guide, renderer CSP, typecheck-gated packaging.
 
 ---
 
