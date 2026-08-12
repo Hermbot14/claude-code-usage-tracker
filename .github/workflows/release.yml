@@ -38,10 +38,11 @@ jobs:
         run: npm run test:e2e
 
       - name: Package (installer + portable)
-        run: npx electron-builder --win
+        # --publish never: electron-builder otherwise auto-publishes when it
+        # sees a git tag and fails without a token; the release upload below
+        # is the single publishing path.
+        run: npx electron-builder --win --publish never
         env:
-          # electron-builder skips its default publish step; artifacts are
-          # attached to the release below instead.
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
       - name: Attach artifacts to release (draft if new)
