@@ -46,7 +46,7 @@ Each provider is normalized to one shape — a short **session** window and a lo
 
 ### Option A — Install the app (recommended)
 
-1. Download **`Usage Tracker-Setup-<version>-x64.exe`** from [Releases](https://github.com/Hermbot14/Usage-Tracker/releases) (or build it yourself, below) and run it.
+1. Download **`Usage Tracker-Setup-<version>-x64.exe`** from [Releases](https://github.com/Hermbot14/claude-code-usage-tracker/releases) (or build it yourself, below) and run it.
    > Windows SmartScreen may warn because the build is unsigned — click **More info → Run anyway**.
 2. Launch **Usage Tracker** from the Start menu or desktop shortcut.
 
@@ -86,7 +86,7 @@ Other providers:
 Prerequisites: Node.js 20+ (22/24 fine) and npm.
 
 ```bash
-git clone https://github.com/Hermbot14/Usage-Tracker.git
+git clone https://github.com/Hermbot14/claude-code-usage-tracker.git
 cd Usage-Tracker
 npm install
 npm run dev
@@ -226,5 +226,5 @@ MIT — see [LICENSE](LICENSE).
 
 ## 🔗 Links
 
-- **Repository**: [github.com/Hermbot14/Usage-Tracker](https://github.com/Hermbot14/Usage-Tracker)
-- **Issues**: [Report a bug](https://github.com/Hermbot14/Usage-Tracker/issues)
+- **Repository**: [github.com/Hermbot14/claude-code-usage-tracker](https://github.com/Hermbot14/claude-code-usage-tracker)
+- **Issues**: [Report a bug](https://github.com/Hermbot14/claude-code-usage-tracker/issues)

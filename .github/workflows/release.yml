@@ -1,0 +1,67 @@
+name: Release
+
+# Tag a version (git tag v2.5.0 && git push origin v2.5.0) to build, test,
+# package, and attach the Windows installer + portable exe to a DRAFT release —
+# review the draft on GitHub and press Publish.
+#
+# When a code-signing certificate is available, add the signing config here
+# (e.g. electron-builder azureSignOptions or SIGNTOOL env) — nothing else in
+# this pipeline needs to change.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: E2E tests (Playwright Electron)
+        run: npm run test:e2e
+
+      - name: Package (installer + portable)
+        run: npx electron-builder --win
+        env:
+          # electron-builder skips its default publish step; artifacts are
+          # attached to the release below instead.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Attach artifacts to release (draft if new)
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          # Create a draft only when the release doesn't exist yet — an already
+          # published release (e.g. created manually) is left published.
+          gh release view "$TAG" >/dev/null 2>&1 || \
+            gh release create "$TAG" --draft --generate-notes --title "$TAG"
+          gh release upload "$TAG" dist5/*Setup*.exe dist5/*Portable*.exe --clobber
+
+      - name: Upload artifacts (non-tag runs)
+        uses: actions/upload-artifact@v4
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        with:
+          name: usage-tracker-win
+          path: |
+            dist5/*Setup*.exe
+            dist5/*Portable*.exe
