@@ -94,16 +94,24 @@ async function ready(): Promise<void> {
   await page.waitForTimeout(400)
 }
 
+/**
+ * Switches theme in place, the way lib/theme.ts applies it (data-theme and
+ * the dark class), without a reload. A reload refetches every account, and
+ * dozens of them in one run got a real account rate-limited.
+ */
 async function setTheme(theme: string, dark: boolean): Promise<void> {
   await page.evaluate(
     ([t, d]) => {
       localStorage.setItem('usage-tracker-theme', t as string)
       localStorage.setItem('usage-tracker-dark', String(d))
+      const root = document.documentElement
+      if (t === 'default') root.removeAttribute('data-theme')
+      else root.setAttribute('data-theme', t as string)
+      root.classList.toggle('dark', d as boolean)
     },
     [theme, dark] as const,
   )
-  await page.reload()
-  await ready()
+  await page.waitForTimeout(150)
 }
 
 /** Resizes the real window when the display allows it, else the viewport. */
