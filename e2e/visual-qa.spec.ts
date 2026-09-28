@@ -147,7 +147,19 @@ test.beforeAll(async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'usage-tracker-qa-'))
   writeFileSync(
     join(userDataDir, 'usage-tracker-store.json'),
-    JSON.stringify({ accounts: [{ id: 'deepseek-qa', name: 'DeepSeek', provider: 'deepseek' }] }),
+    JSON.stringify({
+      accounts: [{ id: 'deepseek-qa', name: 'DeepSeek', provider: 'deepseek' }],
+      // A synthetic three-hour session trend for a locally signed-in Claude
+      // CLI (its account id is always anthropic-local), so the trend renders
+      // with real shape. Nothing here is read from the real profile.
+      usageHistory: {
+        'anthropic-local': Array.from({ length: 30 }, (_, i) => ({
+          t: Date.now() - (30 - i) * 6 * 60_000,
+          s: 2 + Math.round(i / 4),
+          w: 40,
+        })),
+      },
+    }),
   )
   app = await electron.launch({
     args: ['out/main/index.cjs', `--user-data-dir=${userDataDir}`, '--no-sandbox'],

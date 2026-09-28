@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { IconAction } from '@/components/app/IconAction'
-import { Sparkline } from '@/components/usage/Sparkline'
+import { SessionTrend } from '@/components/usage/SessionTrend'
 import { UsageMeter } from '@/components/usage/UsageMeter'
 import { cn } from '@/lib/utils'
 import type { AccountConfig, AccountUsageState, ProviderInfo } from '@/types'
@@ -203,12 +203,9 @@ export function AccountCard({ account, state, provider, onRemove }: AccountCardP
       </CardContent>
 
       {state?.status === 'ok' && (
-        <CardFooter className="justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>Trend</span>
-            <Sparkline points={history.map((h) => h.s)} />
-          </div>
-          <span className="font-mono text-xs text-muted-foreground">
+        <CardFooter className="flex-col items-stretch gap-2">
+          <SessionTrend points={history} />
+          <span className="self-end font-mono text-xs text-muted-foreground">
             Updated {format(new Date(state.usage.lastUpdated), 'HH:mm:ss')}
           </span>
         </CardFooter>
