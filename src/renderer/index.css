@@ -93,8 +93,11 @@
    needs (WCAG 1.4.11), and in dark mode an outline button keeps its grey
    border when focused. At full strength the ring passes in every theme
    (scripts/check-theme-contrast.mjs checks ring on card and page). Unlayered
-   on purpose: it has to win over the ring-ring/50 utility. */
-:focus-visible {
+   on purpose: it has to win over the ring-ring/50 utility. A control whose
+   focus sits on a hidden input inside it (the Slider thumb) draws the ring
+   on itself, so it is matched too. */
+:focus-visible,
+[data-slot]:has(> :focus-visible) {
   --tw-ring-color: var(--ring);
 }
 

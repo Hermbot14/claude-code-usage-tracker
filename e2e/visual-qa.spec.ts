@@ -58,6 +58,7 @@ interface QaResult {
   fails: string[]
 }
 interface FocusResult {
+  id: string
   tag: string
   name: string
   visible: boolean
@@ -230,7 +231,7 @@ test('focus: every Tab stop shows a visible focus indicator', async () => {
         await page.keyboard.press('Tab')
         const f = await page.evaluate(() => (window as unknown as QaWindow).__focus())
         if (!f) continue
-        const key = `${f.tag}:${f.name}`
+        const key = f.id
         if (seen.has(key)) break
         seen.add(key)
         rows.push({ mode: dark ? 'dark' : 'light', ...f })
@@ -240,5 +241,54 @@ test('focus: every Tab stop shows a visible focus indicator', async () => {
     }
   } finally {
     save('focus', rows)
+  }
+})
+
+test('settings dialog: layout, contrast and focus, light and dark', async () => {
+  const rows: unknown[] = []
+  try {
+    for (const dark of [false, true]) {
+      await setTheme('default', dark)
+      for (const [w, h] of [
+        [400, 300],
+        [500, 700],
+        [1280, 900],
+      ] as [number, number][]) {
+        const size = await setSize(w, h)
+        await page.getByRole('button', { name: 'Open settings' }).click()
+        await page.getByRole('dialog').waitFor()
+        // Wait for the focus trap: until focus is inside, Tab can leave.
+        await page.waitForFunction(() =>
+          document.querySelector('[role="dialog"]')?.contains(document.activeElement),
+        )
+        await page.waitForTimeout(200)
+        const label = `settings ${dark ? 'dark' : 'light'} ${size}`
+        const layout = await page.evaluate((l) => (window as unknown as QaWindow).__qa(l), label)
+        const contrast = await page.evaluate((l) => (window as unknown as QaWindow).__contrast(l), label)
+        rows.push(layout, contrast)
+        if (w === 500) {
+          await page.screenshot({ path: join(OUT, `settings-${dark ? 'dark' : 'light'}.png`) })
+          // Focus: every Tab stop inside the dialog (focus is trapped in it).
+          await page.evaluate(() => (window as unknown as QaWindow).__snapshotRest())
+          const seen = new Set<string>()
+          for (let i = 0; i < 40; i++) {
+            await page.keyboard.press('Tab')
+            const f = await page.evaluate(() => (window as unknown as QaWindow).__focus())
+            if (!f) continue
+            const key = f.id
+            if (seen.has(key)) break
+            seen.add(key)
+            rows.push({ label, ...f })
+            expect.soft(f.visible, `${label} ${JSON.stringify(f)}`).toBe(true)
+          }
+        }
+        expect.soft(layout.verdict, JSON.stringify(layout)).toBe('clean')
+        expect.soft(contrast.fails, label).toEqual([])
+        await page.keyboard.press('Escape')
+        await page.getByRole('dialog').waitFor({ state: 'detached' })
+      }
+    }
+  } finally {
+    save('settings', rows)
   }
 })

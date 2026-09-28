@@ -87,11 +87,24 @@
         e.getBoundingClientRect().top > -5000,
     )
 
+  // A target scrolled under a sticky footer, or clipped out of its scroll
+  // box, cannot be hit there; only what is on top at its centre counts.
+  const reachable = (e) => {
+    const r = e.getBoundingClientRect()
+    const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+    return !!top && (top === e || e.contains(top) || top.contains(e))
+  }
+
+  // With a modal open, the page behind it is inert and covered by the
+  // backdrop, so only the dialog is checked.
+  const scope = () => document.querySelector('[role="dialog"][aria-modal="true"], [role="dialog"]') || document.body
+
   window.__qa = (label) => {
     window.scrollTo(0, 0)
     const vw = document.documentElement.clientWidth
-    const hScroll = document.documentElement.scrollWidth - vw
-    const all = [...document.body.querySelectorAll('*')].filter(visible)
+    const hScroll = Math.max(0, document.documentElement.scrollWidth - vw)
+    const root = scope()
+    const all = [...root.querySelectorAll('*')].filter(visible)
     const words = texty(all)
 
     const offscreen = all
@@ -134,7 +147,8 @@
       (e) =>
         !srOnly(e) &&
         e.getAttribute('tabindex') !== '-1' &&
-        e.matches('button, a[href], select, input, textarea, [role="button"], [tabindex="0"]'),
+        e.matches('button, a[href], select, input, textarea, [role="button"], [tabindex="0"]') &&
+        reachable(e),
     )
     const boxes = targets.map((e) => e.getBoundingClientRect())
     const small = boxes.map((r) => r.width < 24 || r.height < 24)
@@ -156,7 +170,7 @@
       }
     })
 
-    const pins = [...new Set(all.map(pinnedRoot).filter(Boolean))]
+    const pins = [...new Set(all.map(pinnedRoot).filter((p) => p && p !== root && !p.contains(root)))]
     const pinnedOverlaps = []
     for (const p of pins) {
       const pr = p.getBoundingClientRect()
@@ -223,7 +237,7 @@
   window.__contrast = (label) => {
     const root = getComputedStyle(document.documentElement)
     const grounds = [parse(root.getPropertyValue('--background').trim())]
-    const all = [...document.body.querySelectorAll('*')].filter(visible)
+    const all = [...scope().querySelectorAll('*')].filter(visible)
     const fails = []
     for (const e of texty(all)) {
       if (e.closest(':disabled, [aria-disabled="true"], [data-disabled]')) continue
@@ -279,14 +293,27 @@
     shadow: cs.boxShadow,
   })
   window.__snapshotRest = () => {
-    const focusables = document.querySelectorAll('button, a[href], input, select, textarea, [tabindex]')
+    // A dialog opens with focus already inside it; blur so nothing is
+    // recorded in its focused state.
+    document.activeElement?.blur?.()
+    const focusables = document.querySelectorAll('button, a[href], input, select, textarea, [tabindex], [data-slot]')
     focusables.forEach((e) => rest.set(e, styleKey(getComputedStyle(e))))
     return focusables.length
   }
 
+  let nextId = 0
   window.__focus = () => {
-    const e = document.activeElement
-    if (!e || e === document.body) return null
+    const focused = document.activeElement
+    if (!focused || focused === document.body) return null
+    // Base UI's focus-trap guards hold focus for an instant and hand it on;
+    // they are not a place a keyboard user ever rests.
+    if (focused.hasAttribute('data-base-ui-focus-guard')) return null
+    if (!focused.dataset.qaId) focused.dataset.qaId = String(++nextId)
+    // A visually hidden input (a Slider's range input, say) shows its focus
+    // on the nearest visible ancestor, which is what a user sees.
+    let e = focused
+    const hidden = (x) => getComputedStyle(x).clipPath === 'inset(50%)' || x.getBoundingClientRect().width < 2
+    while (e.parentElement && hidden(e)) e = e.parentElement
     const cs = getComputedStyle(e)
     const was = rest.get(e)
     const now = styleKey(cs)
@@ -309,6 +336,13 @@
     }
     for (const i of indicators) i.contrast = Number(i.contrast.toFixed(2))
     const visible = indicators.some((i) => i.contrast >= 3)
-    return { name: desc(e), tag: e.tagName.toLowerCase(), visible, indicators }
+    return {
+      id: focused.dataset.qaId,
+      name: desc(focused.getAttribute('aria-label') || focused.getAttribute('aria-labelledby') ? focused : e),
+      tag: focused.tagName.toLowerCase(),
+      shownOn: e === focused ? undefined : e.dataset.slot || e.tagName.toLowerCase(),
+      visible,
+      indicators,
+    }
   }
 })()
