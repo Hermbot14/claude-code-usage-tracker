@@ -34,16 +34,16 @@
   --muted-foreground: #666666;
   --accent: #f2f2f2;
   --accent-foreground: #171717;
-  --destructive: #be262c;
+  --destructive: #b8252b;
   --border: #ebebeb;
   --input: #8f8f8f;
   --ring: #0062e6;
   --data: #0062e6;
-  --ok: #107d32;
-  --warn: #a35200;
+  --ok: #106e2e;
+  --warn: #944c00;
   --chart-1: var(--data);
-  --chart-2: #107d32;
-  --chart-3: #a35200;
+  --chart-2: #106e2e;
+  --chart-3: #944c00;
   --chart-4: #8e4ec6;
   --chart-5: #666666;
 }
@@ -264,6 +264,7 @@
   --data: #d97706;
 }
 [data-theme='retro'].dark {
+  --destructive: #ff7a7e;
   --background: #1c1917;
   --foreground: #fefce8;
   --card: #292524;

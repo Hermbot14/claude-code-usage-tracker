@@ -1,10 +1,26 @@
 import { format } from 'date-fns'
-import { useState, useRef, useEffect } from 'react'
+import { CircleAlert, Crown, Pencil, RefreshCw, Trash2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
+import { IconAction } from '@/components/app/IconAction'
+import { Sparkline } from '@/components/usage/Sparkline'
+import { UsageMeter } from '@/components/usage/UsageMeter'
+import { cn } from '@/lib/utils'
 import type { AccountConfig, AccountUsageState, ProviderInfo } from '@/types'
 import { useUsageStore } from '@stores/useUsageStore'
-import { formatTimeRemaining, getUsageColor, getGradientClass } from '@lib/utils'
-import { ProviderIcon } from './ui/ProviderIcon'
-import { Sparkline } from './ui/Sparkline'
+import { ProviderIcon } from './ProviderIcon'
 
 interface AccountCardProps {
   account: AccountConfig
@@ -13,106 +29,106 @@ interface AccountCardProps {
   onRemove: (id: string) => void
 }
 
-const authChip: Record<string, string> = {
-  oauthLocal: 'LOCAL LOGIN',
-  apiKey: 'API KEY',
-  oauthPaste: 'TOKEN',
+const AUTH_LABEL: Record<string, string> = {
+  oauthLocal: 'Local login',
+  apiKey: 'API key',
+  oauthPaste: 'Token',
 }
 
-function MetricRow({
-  label,
-  windowLabel,
-  percent,
-  reset,
-}: {
-  label: string
-  windowLabel: string
-  percent: number
-  reset: string
-}) {
-  const color = getUsageColor(percent)
+/** The plan name, editable in place: a button that becomes an input. */
+function PlanField({ plan, onSave }: { plan: string | undefined; onSave: (v: string) => void }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!editing) return
+    setDraft(plan ?? '')
+    inputRef.current?.focus()
+    inputRef.current?.select()
+  }, [editing, plan])
+
+  const commit = () => {
+    setEditing(false)
+    onSave(draft)
+  }
+  // "Max 20x" reads better as "Max 20×".
+  const pretty = plan ? plan.replace(/(\d)\s*x\b/i, '$1×') : undefined
+
   return (
-    <div style={{ marginBottom: '14px' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '6px' }}>
-        <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-secondary)' }}>
-          {label} <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>· {windowLabel}</span>
-        </span>
-        <span style={{ fontSize: 14, fontWeight: 700, color, fontVariantNumeric: 'tabular-nums' }}>{percent}%</span>
+    <div className="flex items-center gap-3 rounded-lg border px-3 py-2">
+      <Crown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+      <div className="min-w-0 flex-1">
+        <p className="text-xs text-muted-foreground">Plan</p>
+        {editing ? (
+          <Input
+            ref={inputRef}
+            aria-label="Plan"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commit()
+              if (e.key === 'Escape') setEditing(false)
+            }}
+            placeholder="e.g. Max 20x"
+            className="mt-0.5 h-7"
+          />
+        ) : (
+          <p className={cn('truncate text-sm font-medium', !plan && 'text-muted-foreground')}>
+            {pretty ?? 'Set your plan'}
+          </p>
+        )}
       </div>
-      <div style={{ width: '100%', height: 9, backgroundColor: 'var(--color-background-secondary)', borderRadius: 'var(--radius-full)', overflow: 'hidden', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.12)' }}>
-        <div
-          style={{
-            height: '100%',
-            width: `${Math.min(percent, 100)}%`,
-            background: getGradientClass(percent),
-            borderRadius: 'var(--radius-full)',
-            boxShadow: `0 0 8px color-mix(in srgb, ${color} 55%, transparent)`,
-            transition: 'width 0.5s ease-out, box-shadow 0.3s ease',
-          }}
-        />
-      </div>
-      <div style={{ marginTop: 4, textAlign: 'right' }}>
-        <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>resets in {formatTimeRemaining(reset)}</span>
-      </div>
+      {!editing && (
+        <IconAction size="icon-sm" label={plan ? 'Edit plan' : 'Set plan'} onClick={() => setEditing(true)}>
+          <Pencil />
+        </IconAction>
+      )}
     </div>
   )
 }
 
-function IconButton({
-  onClick,
-  label,
-  spinning,
-  danger,
-  tone = 'default',
-  children,
-}: {
-  onClick: () => void
-  label: string
-  spinning?: boolean
-  danger?: boolean
-  /** 'onAccent' = light icon for placement on the gradient plan header. */
-  tone?: 'default' | 'onAccent'
-  children: React.ReactNode
-}) {
-  const onAccent = tone === 'onAccent'
-  const base = onAccent ? 'var(--color-text-inverse)' : 'var(--color-text-tertiary)'
+/** A failed fetch, with one-click re-login for an expired or missing CLI login. */
+function UsageError({ account, error, code }: { account: AccountConfig; error: string; code?: string }) {
+  const [signingIn, setSigningIn] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const cli = account.provider === 'openai' ? 'codex' : 'claude'
+  const canSignIn =
+    (code === 'no_credential' || code === 'auth') &&
+    (account.provider === 'anthropic' || account.provider === 'openai')
+
+  const signIn = async () => {
+    setSigningIn(true)
+    try {
+      const res = await window.api.claudeSetup.login(cli)
+      setMessage(res.detail ?? (res.ok ? 'Terminal opened. Finish in your browser.' : 'Could not open a terminal.'))
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Could not open a terminal.')
+    } finally {
+      // A short cooldown so rapid clicks cannot open a pile of terminals.
+      setTimeout(() => setSigningIn(false), 4000)
+    }
+  }
+
   return (
-    <button
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      disabled={spinning}
-      style={{
-        padding: 7,
-        borderRadius: 'var(--radius-md)',
-        border: 'none',
-        backgroundColor: 'transparent',
-        cursor: spinning ? 'default' : 'pointer',
-        color: base,
-        opacity: onAccent ? 0.8 : 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        transition: 'color 0.15s, background-color 0.15s, opacity 0.15s',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.opacity = '1'
-        if (onAccent) {
-          e.currentTarget.style.color = 'var(--color-text-inverse)'
-          e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.22)'
-        } else {
-          e.currentTarget.style.color = danger ? 'var(--color-semantic-error)' : 'var(--color-text-primary)'
-          e.currentTarget.style.backgroundColor = 'var(--color-background-secondary)'
-        }
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.color = base
-        e.currentTarget.style.opacity = onAccent ? '0.8' : '1'
-        e.currentTarget.style.backgroundColor = 'transparent'
-      }}
-    >
-      <span style={spinning ? { animation: 'spin 1s linear infinite', display: 'flex' } : { display: 'flex' }}>{children}</span>
-    </button>
+    <div className="flex flex-col gap-3">
+      <Alert variant="destructive">
+        <CircleAlert aria-hidden />
+        <AlertDescription className="break-words">{error}</AlertDescription>
+      </Alert>
+      {canSignIn && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <Button size="sm" onClick={signIn} disabled={signingIn}>
+            {signingIn ? 'Opening…' : 'Sign in'}
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            {message ??
+              `Opens a terminal running ${cli === 'codex' ? 'codex login' : 'claude /login'}. Usage resumes by itself.`}
+          </p>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -121,233 +137,82 @@ export function AccountCard({ account, state, provider, onRemove }: AccountCardP
   const refreshing = refreshingIds.includes(account.id)
   const history = accountHistory[account.id] ?? []
 
-  // Plan label: account config override > API-inferred > nothing
+  // Plan label: the account's own setting, else what the API reports.
   const apiPlan = state?.status === 'ok' ? state.usage.planLabel : undefined
-  const displayPlan = account.planLabel ?? apiPlan
-
-  const [editingPlan, setEditingPlan] = useState(false)
-  const [planDraft, setPlanDraft] = useState('')
-  const planInputRef = useRef<HTMLInputElement>(null)
-
-  // One-click re-login for expired/missing CLI credentials. Brief cooldown so
-  // rapid clicks can't spawn a pile of terminals.
-  const [signingIn, setSigningIn] = useState(false)
-  const [signInMsg, setSignInMsg] = useState<string | null>(null)
-  const handleCardSignIn = async () => {
-    setSigningIn(true)
-    try {
-      const res = await window.api.claudeSetup.login(
-        account.provider === 'openai' ? 'codex' : 'claude',
-      )
-      setSignInMsg(res.detail ?? (res.ok ? 'Terminal opened — finish in your browser.' : 'Could not open a terminal.'))
-    } catch (err) {
-      setSignInMsg(err instanceof Error ? err.message : 'Could not open a terminal.')
-    } finally {
-      setTimeout(() => setSigningIn(false), 4000)
-    }
-  }
-
-  useEffect(() => {
-    if (editingPlan) {
-      setPlanDraft(displayPlan ?? '')
-      planInputRef.current?.focus()
-      planInputRef.current?.select()
-    }
-  }, [editingPlan, displayPlan])
-
-  const commitPlan = () => {
-    setEditingPlan(false)
-    updateAccountPlan(account.id, planDraft)
-  }
-
-  // "Max 20x" → "Max 20×" for a more polished multiplier glyph.
-  const prettyPlan = displayPlan ? displayPlan.replace(/(\d)\s*x\b/i, '$1×') : undefined
-  const authLabel = provider ? authChip[provider.auth] ?? provider.auth.toUpperCase() : null
+  const plan = account.planLabel ?? apiPlan
+  const authLabel = provider ? (AUTH_LABEL[provider.auth] ?? provider.auth) : null
   const email = state?.status === 'ok' ? state.usage.email : undefined
 
   return (
-    <div
-      className="account-card"
-      style={{
-        flexDirection: 'column',
-        background: 'var(--color-surface-card)',
-        borderRadius: 'var(--radius-xl)',
-        boxShadow: 'var(--shadow-md)',
-        transition: 'transform 0.2s ease, box-shadow 0.3s ease, background-color 0.3s ease, border-color 0.2s ease',
-      }}
-    >
-      {/* ── Plan header: a gradient band that makes the subscription the hero ── */}
-      <div
-        style={{
-          background: 'linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-accent-primary-hover) 100%)',
-          padding: 'clamp(15px, 1.7vw, 19px)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 14,
-        }}
-      >
-        {/* Identity + actions */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-            <div style={{ borderRadius: 11, boxShadow: '0 0 0 2px rgba(255,255,255,0.32)', display: 'flex', flexShrink: 0 }}>
-              <ProviderIcon provider={account.provider} size={38} />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <p style={{ margin: 0, fontSize: 17, fontWeight: 700, color: 'var(--color-text-inverse)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {account.name}
-              </p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, minWidth: 0 }}>
-                {authLabel && (
-                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.5, color: 'var(--color-text-inverse)', opacity: 0.72, flexShrink: 0 }}>
-                    {authLabel}
+    <Card>
+      <CardHeader>
+        <div className="flex min-w-0 items-center gap-3">
+          <ProviderIcon provider={account.provider} />
+          <div className="min-w-0">
+            <CardTitle className="truncate">{account.name}</CardTitle>
+            <CardDescription className="flex min-w-0 items-center gap-1.5 text-xs">
+              {authLabel && <span className="shrink-0">{authLabel}</span>}
+              {email && (
+                <>
+                  <span aria-hidden>·</span>
+                  <span className="truncate" title={email}>
+                    {email}
                   </span>
-                )}
-                {email && (
-                  <>
-                    <span style={{ fontSize: 10, color: 'var(--color-text-inverse)', opacity: 0.5, flexShrink: 0 }}>·</span>
-                    <span style={{ fontSize: 11, color: 'var(--color-text-inverse)', opacity: 0.72, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {email}
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-            <IconButton tone="onAccent" onClick={() => refreshAccount(account.id)} label={`Refresh ${account.name}`} spinning={refreshing}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M23 4v6h-6M1 20v-6h6" />
-                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
-              </svg>
-            </IconButton>
-            <IconButton tone="onAccent" onClick={() => onRemove(account.id)} label={`Remove ${account.name}`} danger>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-              </svg>
-            </IconButton>
-          </div>
-        </div>
-
-        {/* Plan hero block — floats on the gradient, the visual centerpiece */}
-        <div
-          onClick={() => setEditingPlan(true)}
-          title={displayPlan ? 'Click to edit plan' : 'Click to set your plan'}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 13,
-            background: 'var(--color-surface-card)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '11px 15px',
-            boxShadow: 'var(--shadow-lg)',
-            cursor: 'pointer',
-          }}
-        >
-          <div style={{
-            width: 38, height: 38, flexShrink: 0, borderRadius: 'var(--radius-md)',
-            background: 'var(--color-accent-primary-light)',
-            color: 'var(--color-accent-primary)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M5 16L3 6l5.5 4L12 4l3.5 6L21 6l-2 10H5zm0 2h14v2H5v-2z" />
-            </svg>
-          </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: 1.3, textTransform: 'uppercase', color: 'var(--color-text-tertiary)' }}>
-              Current plan
-            </div>
-            {editingPlan ? (
-              <input
-                ref={planInputRef}
-                value={planDraft}
-                onChange={(e) => setPlanDraft(e.target.value)}
-                onBlur={commitPlan}
-                onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => { if (e.key === 'Enter') commitPlan(); if (e.key === 'Escape') setEditingPlan(false) }}
-                placeholder="e.g. Max 20x"
-                style={{
-                  width: '100%', marginTop: 1, border: 'none', outline: 'none', background: 'transparent',
-                  fontSize: 19, fontWeight: 800, lineHeight: 1.15, color: 'var(--color-text-primary)',
-                  borderBottom: '1.5px solid var(--color-accent-primary)', padding: 0,
-                }}
-              />
-            ) : (
-              <div style={{
-                fontSize: 19, fontWeight: 800, lineHeight: 1.15,
-                color: displayPlan ? 'var(--color-text-primary)' : 'var(--color-text-tertiary)',
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-              }}>
-                {prettyPlan ?? 'Set your plan'}
-              </div>
-            )}
-          </div>
-          {!editingPlan && (
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.6 }}>
-              <path d="M12 20h9" />
-              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
-            </svg>
-          )}
-        </div>
-      </div>
-
-      {/* ── Body: usage metrics ── */}
-      <div style={{ padding: 'clamp(16px, 1.8vw, 22px)' }}>
-        {!state || state.status === 'loading' ? (
-          <div style={{ height: 88, borderRadius: 'var(--radius-md)' }} className="skeleton-loader" />
-        ) : state.status === 'error' ? (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', backgroundColor: 'var(--color-semantic-error-light)', borderRadius: 'var(--radius-md)' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-semantic-error)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              <span style={{ fontSize: 13, color: 'var(--color-semantic-error)', wordBreak: 'break-word' }}>{state.error}</span>
-            </div>
-            {/* One-click recovery for missing/expired CLI logins — the most common
-                failure. Opens a terminal running the provider's login command;
-                the regular poller picks the fresh token up within a minute. */}
-            {(state.code === 'no_credential' || state.code === 'auth') &&
-              (account.provider === 'anthropic' || account.provider === 'openai') && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', margin: '10px 2px 0' }}>
-                  <button
-                    onClick={handleCardSignIn}
-                    disabled={signingIn}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: 'var(--radius-md)',
-                      border: 'none',
-                      backgroundColor: 'var(--color-accent-primary)',
-                      color: 'var(--color-text-inverse)',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: signingIn ? 'wait' : 'pointer',
-                      opacity: signingIn ? 0.6 : 1,
-                    }}
-                  >
-                    {signingIn ? 'Opening…' : 'Sign in'}
-                  </button>
-                  <span style={{ fontSize: 12, color: 'var(--color-text-tertiary)', lineHeight: 1.5 }}>
-                    {signInMsg ??
-                      (account.provider === 'anthropic'
-                        ? 'opens a terminal running claude /login — usage resumes automatically'
-                        : 'opens a terminal running codex login — usage resumes automatically')}
-                  </span>
-                </div>
+                </>
               )}
+            </CardDescription>
           </div>
+        </div>
+        <CardAction className="flex items-center">
+          <IconAction
+            size="icon-sm"
+            label={`Refresh ${account.name}`}
+            onClick={() => refreshAccount(account.id)}
+            disabled={refreshing}
+          >
+            <RefreshCw className={cn(refreshing && 'animate-spin')} />
+          </IconAction>
+          <IconAction size="icon-sm" label={`Remove ${account.name}`} onClick={() => onRemove(account.id)}>
+            <Trash2 />
+          </IconAction>
+        </CardAction>
+      </CardHeader>
+
+      <CardContent className="flex flex-col gap-4">
+        <PlanField plan={plan} onSave={(value) => updateAccountPlan(account.id, value)} />
+        {!state || state.status === 'loading' ? (
+          <Skeleton className="h-[88px]" />
+        ) : state.status === 'error' ? (
+          <UsageError account={account} error={state.error} code={state.code} />
         ) : (
           <>
-            <MetricRow label="Session" windowLabel={state.usage.sessionWindowLabel} percent={state.usage.sessionPercent} reset={state.usage.sessionResetTime} />
-            <MetricRow label="Weekly" windowLabel={state.usage.weeklyWindowLabel} percent={state.usage.weeklyPercent} reset={state.usage.weeklyResetTime} />
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, borderTop: '1px solid var(--color-border-default)', paddingTop: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>trend</span>
-                <Sparkline points={history.map((h) => h.s)} color={getUsageColor(state.usage.sessionPercent)} />
-              </div>
-              <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>Updated {format(new Date(state.usage.lastUpdated), 'HH:mm:ss')}</span>
-            </div>
+            <UsageMeter
+              label="Session"
+              windowLabel={state.usage.sessionWindowLabel}
+              percent={state.usage.sessionPercent}
+              resetTime={state.usage.sessionResetTime}
+            />
+            <UsageMeter
+              label="Weekly"
+              windowLabel={state.usage.weeklyWindowLabel}
+              percent={state.usage.weeklyPercent}
+              resetTime={state.usage.weeklyResetTime}
+            />
           </>
         )}
-      </div>
-    </div>
+      </CardContent>
+
+      {state?.status === 'ok' && (
+        <CardFooter className="justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Trend</span>
+            <Sparkline points={history.map((h) => h.s)} />
+          </div>
+          <span className="font-mono text-xs text-muted-foreground">
+            Updated {format(new Date(state.usage.lastUpdated), 'HH:mm:ss')}
+          </span>
+        </CardFooter>
+      )}
+    </Card>
   )
 }

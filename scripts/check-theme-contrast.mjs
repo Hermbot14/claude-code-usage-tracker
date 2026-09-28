@@ -106,11 +106,17 @@ for (const theme of themeIds) {
     }
     for (const [fg, bg] of TEXT) check(fg, bg, 4.5)
     for (const [fg, bg] of NON_TEXT) check(fg, bg, 3)
-    // A badge: the hue as text on a 10% tint of itself over the card.
+    // A badge: the hue as text on a 10% tint of itself, over the card and
+    // over the page (badges sit on both).
     for (const hue of TINTED.slice(0, 3)) {
-      const tint = mix(rgb(get(hue)), rgb(get('card')), 0.1)
-      check(hue, `${hue} tint`, 4.5, undefined, tint)
+      for (const ground of ['card', 'background']) {
+        const tint = mix(rgb(get(hue)), rgb(get(ground)), 0.1)
+        check(hue, `${hue} tint on ${ground}`, 4.5, undefined, tint)
+      }
     }
+    // shadcn's destructive Alert draws its description at 90% opacity.
+    const faded = mix(rgb(get('destructive')), rgb(get('card')), 0.9)
+    check('destructive 90%', 'card', 4.5, faded)
     failures += bad.length
     console.log(`${bad.length ? 'FAIL' : 'ok  '} ${label.padEnd(18)} ${bad.join('; ')}`)
   }

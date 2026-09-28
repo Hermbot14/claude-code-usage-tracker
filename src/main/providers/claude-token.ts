@@ -180,7 +180,7 @@ export async function getFreshClaudeToken(force = false): Promise<ClaudeTokenRes
     return {
       token: oauth.accessToken ?? null,
       email: emailOf(oauth),
-      error: 'Token refresh on cooldown — will retry shortly',
+      error: 'Token refresh on cooldown, will retry shortly',
     }
   }
 

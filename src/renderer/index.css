@@ -88,6 +88,16 @@
   }
 }
 
+/* Focus at full strength. shadcn draws its ring at 50% of --ring, which
+   measured 2.2 to 2.7:1 on the page here, under the 3:1 a focus indicator
+   needs (WCAG 1.4.11), and in dark mode an outline button keeps its grey
+   border when focused. At full strength the ring passes in every theme
+   (scripts/check-theme-contrast.mjs checks ring on card and page). Unlayered
+   on purpose: it has to win over the ring-ring/50 utility. */
+:focus-visible {
+  --tw-ring-color: var(--ring);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

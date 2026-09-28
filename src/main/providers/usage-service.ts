@@ -96,7 +96,7 @@ export async function fetchAccountUsage(account: UsageAccount): Promise<FetchUsa
     return {
       ok: false,
       code: 'unsupported',
-      error: `${desc.label} usage tracking isn't wired yet${desc.notes ? ` — ${desc.notes}` : ''}`,
+      error: `${desc.label} usage tracking isn't wired yet${desc.notes ? `. ${desc.notes}` : ''}`,
     }
   }
 
@@ -131,7 +131,7 @@ export async function fetchAccountUsage(account: UsageAccount): Promise<FetchUsa
     const cached = lastGood.get(account.id)
     if (cached) return { ok: true, usage: cached }
     const secsLeft = Math.ceil((cooldown - now) / 1000)
-    return { ok: false, code: 'rate_limit', error: `${desc.label} rate-limited — retrying in ${secsLeft}s` }
+    return { ok: false, code: 'rate_limit', error: `${desc.label} rate-limited, retrying in ${secsLeft}s` }
   }
 
   // Throttle providers with a minimum poll interval (e.g. Anthropic 60s).
@@ -154,7 +154,7 @@ export async function fetchAccountUsage(account: UsageAccount): Promise<FetchUsa
         error:
           cred.error ??
           (desc.auth === 'oauthLocal'
-            ? `No local ${desc.label} login found — sign in with the ${desc.label} CLI first`
+            ? `No local ${desc.label} login found. Sign in with the ${desc.label} CLI first`
             : 'No credential configured'),
       }
     }
@@ -174,7 +174,7 @@ export async function fetchAccountUsage(account: UsageAccount): Promise<FetchUsa
         cooldownUntil.set(account.id, Date.now() + RATE_LIMIT_COOLDOWN_MS)
         const prev = lastGood.get(account.id)
         if (prev) return { ok: true, usage: prev }
-        return { ok: false, code: 'rate_limit', error: `Rate limited by ${desc.label} — backing off` }
+        return { ok: false, code: 'rate_limit', error: `Rate limited by ${desc.label}, backing off` }
       }
       return { ok: false, code: 'network', error: `${desc.label} request failed: ${response.status} ${response.statusText}` }
     }
