@@ -19,6 +19,9 @@ test.beforeAll(async () => {
   // Pre-seed an isolated store with overlay mode on at 60% opacity.
   const userDataDir = mkdtempSync(join(tmpdir(), 'usage-tracker-overlay-'))
   const store = {
+    // No accounts, and local CLI logins opted out, so the overlay has no
+    // reading whatever is signed in on this machine (the "--" check needs it).
+    dismissedLocalAccounts: ['anthropic', 'openai', 'qwen'],
     overlayMode: true,
     overlayPosition: 'top-right',
     settings: {
