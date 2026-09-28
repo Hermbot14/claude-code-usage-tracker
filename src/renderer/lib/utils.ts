@@ -1,6 +1,6 @@
-export function cn(...classes: (string | undefined | null | false)[]): string {
-  return classes.filter(Boolean).join(' ')
-}
+// shadcn's `cn` package, the same one the generated components in
+// components/ui import. components.json points its `utils` alias here.
+export { cn } from 'cn'
 
 export function formatNumber(num: number): string {
   if (num >= 1000000) {

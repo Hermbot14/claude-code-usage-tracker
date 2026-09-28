@@ -28,24 +28,26 @@
           stored === 'true' ||
           (stored === null && window.matchMedia('(prefers-color-scheme: dark)').matches)
         var theme = localStorage.getItem('usage-tracker-theme') || 'default'
+        // 'vercel' was folded into the default when the default became Geist.
+        if (theme === 'vercel') theme = 'default'
 
         if (dark) document.documentElement.classList.add('dark')
         if (theme && theme !== 'default')
           document.documentElement.setAttribute('data-theme', theme)
 
-        // Background colour lookup — must stay in sync with index.css theme values.
-        // [light, dark] for each theme.
+        // [light, dark] page background per theme. Must match
+        // styles/themes.css and THEMES in lib/theme.ts.
         var BG = {
-          default: ['#F2F2ED', '#0B0B0F'],
-          dusk:    ['#F5F5F0', '#131419'],
-          lime:    ['#E8F5A3', '#0F0F1A'],
-          ocean:   ['#E0F2FE', '#082F49'],
-          retro:   ['#FEF3C7', '#1C1917'],
-          neo:     ['#FDF4FF', '#0F0720'],
-          forest:  ['#DCFCE7', '#052E16'],
-          sportslink: ['#F4F7FB', '#071626'],
-          vercel:     ['#FAFAFA', '#000000'],
-          blossom:    ['#FFF7FB', '#14101C'],
+          default:    ['#fafafa', '#000000'],
+          olive:      ['#f2f2ed', '#0b0b0f'],
+          dusk:       ['#f5f5f0', '#131419'],
+          lime:       ['#e8f5a3', '#0f0f1a'],
+          ocean:      ['#e0f2fe', '#082f49'],
+          retro:      ['#fef3c7', '#1c1917'],
+          neo:        ['#fdf4ff', '#0f0720'],
+          forest:     ['#dcfce7', '#052e16'],
+          sportslink: ['#f4f7fb', '#071626'],
+          blossom:    ['#fff7fb', '#14101c'],
         }
         var pair = BG[theme] || BG['default']
         document.documentElement.style.backgroundColor = dark ? pair[1] : pair[0]

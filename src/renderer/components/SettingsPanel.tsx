@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useUsageStore } from '@stores/useUsageStore'
 import { AccountsManager } from './AccountsManager'
-import { Badge } from './ui/Badge'
+import { Badge } from './ui/badge'
 
 interface SettingsPanelProps {
   isOpen: boolean
@@ -550,10 +550,10 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
         }}>
           <div>
             {saveStatus === 'saved' && (
-              <Badge variant="success">Settings saved!</Badge>
+              <Badge variant="secondary">Settings saved</Badge>
             )}
             {saveStatus === 'error' && (
-              <Badge variant="error">Failed to save</Badge>
+              <Badge variant="destructive">Failed to save</Badge>
             )}
           </div>
           <div style={{ display: 'flex', gap: '12px' }}>
