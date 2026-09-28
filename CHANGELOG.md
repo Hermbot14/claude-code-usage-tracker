@@ -3,6 +3,25 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); this project uses semantic versioning.
 
+## [Unreleased]
+
+### Changed
+- **Rebuilt the whole interface on shadcn/ui** (base-nova, Base UI) with the
+  Geist look as the new default theme: hairline panels, Geist Sans and Mono,
+  one data colour. The original palette stays as the **Olive** theme; all ten
+  themes work in light and dark. See `docs/DESIGN-SYSTEM.md`.
+- Settings is a proper dialog (focus trap, Escape, backdrop) with Select,
+  Switch, Slider and toggle groups; the plan name is editable from the
+  keyboard; the overlay follows the theme and honours "Show percentage" and
+  "Show progress bar".
+
+### Fixed
+- Every theme meets WCAG 2.2 AA contrast, every control shows a visible focus
+  ring (sliders showed none), and usage levels are never shown by colour
+  alone.
+- The header's light/dark button and the theme menu no longer disagree.
+- The overlay shows `--` before the first reading instead of 0%.
+
 ## [2.5.0] — 2026-08-12
 
 ### Added

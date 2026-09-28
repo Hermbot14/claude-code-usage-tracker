@@ -1,138 +1,109 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { Maximize2, OctagonAlert, TriangleAlert } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
+import { LevelBadge } from '@/components/usage/LevelBadge'
+import { LEVEL_FILL, LEVEL_LABEL, LEVEL_TEXT, usageLevel } from '@/lib/usage-level'
+import { cn, formatTime, formatTimeRemaining } from '@/lib/utils'
 import { useUsageStore } from '@stores/useUsageStore'
-import { formatTime, getUsageColor, getGradientClass, formatTimeRemaining } from '@lib/utils'
-import { ProgressCircle } from '@components/ui/ProgressCircle'
 
 export interface UsageOverlayProps {
   onExpand?: () => void
 }
 
 /**
- * UsageOverlay - Compact 200x200px overlay component
+ * The 200x200 always-on-top overlay: session usage and time to reset.
  *
- * Displays:
- * - Draggable header with abbreviated time and expand button
- * - Large usage percentage (always visible)
- * - Time until next reset (KEY DATA - always visible)
- * - Progress circle (small size)
- * - Mini progress bar
- * - Critical alert when usage >= 80%
+ * The whole card drags the window (-webkit-app-region); the expand button
+ * opts out so it stays clickable. With click-through on, the window ignores
+ * the mouse until the pointer is over the card. Before the first reading
+ * the figure is "--", never 0%: nothing has been measured yet.
  *
- * Hover behavior:
- * - When overlay mode is enabled with clickThrough, the window is click-through by default
- * - Hovering over the overlay container makes it interactive (disables click-through)
- * - Leaving the overlay restores click-through behavior
- *
- * Draggable:
- * - The header area is draggable via -webkit-app-region: drag
- * - The expand button is excluded from drag via -webkit-app-region: no-drag
+ * `usage-overlay`, `overlay-header` and `overlay-percent` are hooks for
+ * e2e/overlay.spec.ts, not styles.
  */
 export function UsageOverlay({ onExpand }: UsageOverlayProps) {
   const { currentUsage, settings } = useUsageStore()
   const overlayRef = useRef<HTMLDivElement>(null)
-  const [currentTime, setCurrentTime] = useState(formatTime(new Date()))
+  const [time, setTime] = useState(formatTime(new Date()))
+  const { showPercentage, showProgressBar, clickThrough } = settings.overlayMode
 
-  // Update time every second
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(formatTime(new Date()))
-    }, 1000)
+    const timer = setInterval(() => setTime(formatTime(new Date())), 1000)
     return () => clearInterval(timer)
   }, [])
 
-  // Get session percentage for display
-  const sessionPercent = currentUsage?.sessionPercent ?? 0
-  const color = getUsageColor(sessionPercent)
-
-  // Calculate time until reset (KEY DATA!)
-  const timeUntilReset = currentUsage?.sessionResetTime
-    ? formatTimeRemaining(currentUsage.sessionResetTime)
-    : '--'
-
-  // Determine if critical alert should be shown
-  const showCriticalAlert = sessionPercent >= 80
-
-  // Setup hover-to-interact behavior for click-through mode
+  // The window is transparent; only the card should paint.
   useEffect(() => {
-    // Only enable hover behavior when click-through is enabled
-    if (!settings.overlayMode.clickThrough) {
-      return
-    }
+    const layers = [document.documentElement, document.body]
+    layers.forEach((el) => el.classList.add('bg-transparent'))
+    return () => layers.forEach((el) => el.classList.remove('bg-transparent'))
+  }, [])
 
-    const container = overlayRef.current
-    if (!container) {
-      return
-    }
-
-    // Enable interaction on hover (disable click-through)
-    const handleMouseEnter = () => {
-      if (window.api?.setClickThrough) {
-        window.api.setClickThrough(false)
-      }
-    }
-
-    // Disable interaction on leave (enable click-through)
-    const handleMouseLeave = () => {
-      if (window.api?.setClickThrough) {
-        window.api.setClickThrough(true)
-      }
-    }
-
-    // Add event listeners to the container
-    container.addEventListener('mouseenter', handleMouseEnter)
-    container.addEventListener('mouseleave', handleMouseLeave)
-
-    // Cleanup function
+  // Click-through: interactive while hovered, click-through again on leave.
+  useEffect(() => {
+    const card = overlayRef.current
+    if (!clickThrough || !card) return
+    const enter = () => window.api?.setClickThrough(false)
+    const leave = () => window.api?.setClickThrough(true)
+    card.addEventListener('mouseenter', enter)
+    card.addEventListener('mouseleave', leave)
     return () => {
-      container.removeEventListener('mouseenter', handleMouseEnter)
-      container.removeEventListener('mouseleave', handleMouseLeave)
+      card.removeEventListener('mouseenter', enter)
+      card.removeEventListener('mouseleave', leave)
     }
-  }, [settings.overlayMode.clickThrough])
+  }, [clickThrough])
+
+  const percent = currentUsage ? currentUsage.sessionPercent : null
+  const level = usageLevel(percent ?? 0)
+  const reset = currentUsage?.sessionResetTime ? formatTimeRemaining(currentUsage.sessionResetTime) : '--'
+  const Icon = level === 'critical' ? OctagonAlert : TriangleAlert
 
   return (
-    <div ref={overlayRef} className="usage-overlay">
-      {/* Draggable header with time and expand button */}
-      <div className="overlay-header">
-        <span className="overlay-time">{currentTime}</span>
-        <button
-          type="button"
+    <div
+      ref={overlayRef}
+      className="usage-overlay flex h-[200px] w-[200px] cursor-move flex-col gap-2 overflow-hidden rounded-2xl bg-card p-3 text-card-foreground ring-1 ring-foreground/10 select-none [-webkit-app-region:drag]"
+    >
+      <div className="overlay-header flex items-center justify-between">
+        <span className="font-mono text-xs text-muted-foreground tabular-nums">{time}</span>
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={onExpand}
           aria-label="Expand to full view"
-          className="interactive"
+          title="Expand to full view"
+          className="cursor-pointer [-webkit-app-region:no-drag]"
         >
-          ⛶
-        </button>
+          <Maximize2 />
+        </Button>
       </div>
 
-      {/* KEY DATA: Usage Percentage - Large and always visible */}
-      <div className="overlay-percent">{sessionPercent}%</div>
-
-      {/* KEY DATA: Time until next reset - Always visible! */}
-      <div className="overlay-reset-time">
-        <span className="overlay-reset-label">Reset in:</span>
-        <span className="overlay-reset-value">{timeUntilReset}</span>
+      <div className="flex flex-1 flex-col justify-center gap-1">
+        {showPercentage && (
+          <div
+            className={cn(
+              'overlay-percent flex items-center gap-1.5 text-4xl leading-none font-semibold tracking-tight tabular-nums',
+              percent !== null && level !== 'ok' && LEVEL_TEXT[level],
+            )}
+          >
+            {percent !== null && level !== 'ok' && <Icon className="size-6" aria-hidden />}
+            {percent === null ? '--' : `${percent}%`}
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Session resets in <span className="font-mono text-foreground">{reset}</span>
+        </p>
       </div>
 
-      {/* Progress circle center */}
-      <div className="overlay-progress">
-        <ProgressCircle size="sm" value={sessionPercent} color={color} />
-      </div>
-
-      {/* Mini progress bar (always shown in overlay) */}
-      <div className="overlay-bar">
-        <div
-          className="overlay-bar-fill"
-          style={{
-            width: `${sessionPercent}%`,
-            background: getGradientClass(sessionPercent),
-          }}
+      {showProgressBar && percent !== null && (
+        <Progress
+          value={Math.min(Math.max(percent, 0), 100)}
+          aria-label="Session usage"
+          getAriaValueText={() => `${percent}% used, ${LEVEL_LABEL[level]}`}
+          className={cn('[&_[data-slot=progress-track]]:h-1.5', LEVEL_FILL[level])}
         />
-      </div>
-
-      {/* Critical alert */}
-      {showCriticalAlert && (
-        <div className="overlay-alert">⚠ {sessionPercent}% used</div>
       )}
+      {percent !== null && level !== 'ok' && <LevelBadge level={level} className="self-start" />}
     </div>
   )
 }

@@ -5,8 +5,6 @@
    styles quietly do not apply. */
 @import 'shadcn/tailwind.css';
 @import './styles/themes.css';
-@import './styles/legacy.css';
-@import './styles/overlay.css';
 
 /* Dark mode is the `dark` class the preloader in index.html puts on <html>
    before first paint. Colour themes are the separate data-theme attribute. */
