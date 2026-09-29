@@ -9,7 +9,6 @@ import type {
   LocalAccountInfo,
   ProviderUsage,
 } from '@/types'
-import { addReading, type HistoryPoint } from '@/lib/usage-history'
 
 interface UsageStore {
   // State
@@ -26,8 +25,6 @@ interface UsageStore {
   accountUsage: Record<string, AccountUsageState>
   providers: ProviderInfo[]
   localAccounts: LocalAccountInfo[]
-  /** In-memory recent session/weekly % samples per account, for sparklines. */
-  accountHistory: Record<string, HistoryPoint[]>
   refreshingIds: string[]
 
   // Actions
@@ -53,10 +50,6 @@ interface UsageStore {
   setAccountUsage: (id: string, state: AccountUsageState) => void
   setProviders: (providers: ProviderInfo[]) => void
   setLocalAccounts: (local: LocalAccountInfo[]) => void
-  /** Records a reading for the trend; a cached copy of the last one is ignored. */
-  appendHistory: (id: string, usage: ProviderUsage) => void
-  /** Restores the trend history read back from disk. */
-  setAccountHistory: (history: Record<string, HistoryPoint[]>) => void
   refreshAccount: (id: string) => Promise<void>
   updateAccountPlan: (id: string, planLabel: string) => Promise<void>
 }
@@ -93,7 +86,6 @@ export const useUsageStore = create<UsageStore>((set, get) => ({
   accountUsage: {},
   providers: [],
   localAccounts: [],
-  accountHistory: {},
   refreshingIds: [],
 
   // Actions
@@ -236,9 +228,7 @@ export const useUsageStore = create<UsageStore>((set, get) => ({
     const accounts = get().accounts.filter((a) => a.id !== id)
     const accountUsage = { ...get().accountUsage }
     delete accountUsage[id]
-    const accountHistory = { ...get().accountHistory }
-    delete accountHistory[id]
-    set({ accounts, accountUsage, accountHistory })
+    set({ accounts, accountUsage })
     try {
       const metaOnly = accounts.map(({ apiKey: _k, ...meta }) => meta)
       await window.api.store.set('accounts', metaOnly)
@@ -305,19 +295,6 @@ export const useUsageStore = create<UsageStore>((set, get) => ({
 
   setLocalAccounts: (localAccounts) => set({ localAccounts }),
 
-  appendHistory: (id, usage) =>
-    set((state) => {
-      const prev = state.accountHistory[id] ?? []
-      const t = Date.parse(usage.lastUpdated)
-      const next = addReading(prev, {
-        t: Number.isNaN(t) ? Date.now() : t,
-        s: usage.sessionPercent,
-        w: usage.weeklyPercent,
-      })
-      return next === prev ? state : { accountHistory: { ...state.accountHistory, [id]: next } }
-    }),
-
-  setAccountHistory: (accountHistory) => set({ accountHistory }),
 
   updateAccountPlan: async (id, planLabel) => {
     const accounts = get().accounts.map((a) => (a.id === id ? { ...a, planLabel: planLabel.trim() || undefined } : a))
@@ -336,7 +313,6 @@ export const useUsageStore = create<UsageStore>((set, get) => ({
       if (res.success && res.data) {
         const usage = res.data as ProviderUsage
         get().setAccountUsage(id, { status: 'ok', usage })
-        get().appendHistory(id, usage)
       } else {
         get().setAccountUsage(id, {
           status: 'error',

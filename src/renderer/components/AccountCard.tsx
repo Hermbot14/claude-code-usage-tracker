@@ -15,7 +15,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { IconAction } from '@/components/app/IconAction'
-import { SessionTrend } from '@/components/usage/SessionTrend'
 import { UsageMeter } from '@/components/usage/UsageMeter'
 import { cn } from '@/lib/utils'
 import type { AccountConfig, AccountUsageState, ProviderInfo } from '@/types'
@@ -133,9 +132,8 @@ function UsageError({ account, error, code }: { account: AccountConfig; error: s
 }
 
 export function AccountCard({ account, state, provider, onRemove }: AccountCardProps) {
-  const { accountHistory, refreshAccount, refreshingIds, updateAccountPlan } = useUsageStore()
+  const { refreshAccount, refreshingIds, updateAccountPlan } = useUsageStore()
   const refreshing = refreshingIds.includes(account.id)
-  const history = accountHistory[account.id] ?? []
 
   // Plan label: the account's own setting, else what the API reports.
   const apiPlan = state?.status === 'ok' ? state.usage.planLabel : undefined
@@ -203,9 +201,8 @@ export function AccountCard({ account, state, provider, onRemove }: AccountCardP
       </CardContent>
 
       {state?.status === 'ok' && (
-        <CardFooter className="flex-col items-stretch gap-2">
-          <SessionTrend points={history} />
-          <span className="self-end font-mono text-xs text-muted-foreground">
+        <CardFooter className="justify-end">
+          <span className="font-mono text-xs text-muted-foreground">
             Updated {format(new Date(state.usage.lastUpdated), 'HH:mm:ss')}
           </span>
         </CardFooter>

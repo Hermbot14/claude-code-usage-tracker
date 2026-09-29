@@ -20,12 +20,9 @@ for data.
 4. **No meaning by colour alone** (WCAG 1.4.1). A usage level shows its colour
    together with an icon and a word (`LevelBadge`, `UsageMeter`).
 5. **Unmeasured is not zero.** Before the first reading the overlay shows `--`.
-6. **Charts** use shadcn's `Chart` at a fixed size for small ones, with
-   `type="linear"`, `isAnimationActive={false}` and, when decorative,
-   `accessibilityLayer={false}`.
-7. **Generated files** in `components/ui/` may be changed only with a comment
+6. **Generated files** in `components/ui/` may be changed only with a comment
    saying why (see `slider.tsx`).
-8. No em dashes in user-facing copy, commits or docs.
+7. No em dashes in user-facing copy, commits or docs.
 
 ## Files
 
@@ -38,7 +35,7 @@ for data.
 | `src/renderer/index.html` | First-paint preloader (repeats each theme's background) |
 | `src/renderer/lib/usage-level.ts` | Usage thresholds and their tokens |
 | `components/app/` | `AppHeader`, `ThemeMenu`, `IconAction` |
-| `components/usage/` | `UsageMeter`, `LevelBadge`, `Sparkline` |
+| `components/usage/` | `UsageMeter`, `LevelBadge` |
 | `components/cost/` | Cost panel parts |
 | `components/settings/` | `SwitchField`, `SliderField`, overlay settings |
 

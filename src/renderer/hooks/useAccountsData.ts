@@ -1,7 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react'
 import { useUsageStore } from '@stores/useUsageStore'
 import type { AccountConfig, ProviderUsage, UsageData } from '@/types'
-import { pruneHistory } from '@/lib/usage-history'
 
 /** Map a normalized ProviderUsage onto the legacy UsageData shape (tray/overlay). */
 function toLegacy(u: ProviderUsage): UsageData {
@@ -31,7 +30,6 @@ export function useAccountsData() {
     setAccounts,
     setAccountUsage,
     setCurrentUsage,
-    appendHistory,
   } = useUsageStore()
 
   const isFetchingRef = useRef(false)
@@ -39,8 +37,6 @@ export function useAccountsData() {
   // Last-good usage per account, mirrored to disk so a cold launch can show
   // data immediately instead of blanking while the (rate-limited) API retries.
   const lastUsageRef = useRef<Record<string, ProviderUsage>>({})
-  // The history object last written to disk, to skip writes that add nothing.
-  const savedHistoryRef = useRef<unknown>(null)
 
   const pollAll = useCallback(async () => {
     const list = useUsageStore.getState().accounts
@@ -72,7 +68,6 @@ export function useAccountsData() {
         if (res.success && res.data) {
           const usage = res.data as ProviderUsage
           setAccountUsage(account.id, { status: 'ok', usage })
-          appendHistory(account.id, usage)
           lastUsageRef.current[account.id] = usage
           cacheDirty = true
           const worst = Math.max(usage.sessionPercent, usage.weeklyPercent)
@@ -101,13 +96,6 @@ export function useAccountsData() {
       if (cacheDirty) {
         window.api.store.set('lastUsage', lastUsageRef.current).catch(() => {})
       }
-      // Save the trend only when it gained a point: most polls are served
-      // from the main process's cache and add nothing.
-      const history = useUsageStore.getState().accountHistory
-      if (history !== savedHistoryRef.current) {
-        savedHistoryRef.current = history
-        window.api.store.set('usageHistory', history).catch(() => {})
-      }
 
       // Mirror the most-constrained account into the legacy tray/overlay state.
       if (primary) {
@@ -118,7 +106,7 @@ export function useAccountsData() {
     } finally {
       isFetchingRef.current = false
     }
-  }, [setAccountUsage, setCurrentUsage, appendHistory])
+  }, [setAccountUsage, setCurrentUsage])
 
   // One-time bootstrap: providers, local logins, seed accounts.
   useEffect(() => {
@@ -136,14 +124,8 @@ export function useAccountsData() {
         const cachedUsage = ((await window.api.store.get('lastUsage', {})) || {}) as Record<string, ProviderUsage>
         lastUsageRef.current = { ...cachedUsage }
 
-        // Restore the trend, so a restart does not start it from nothing.
-        const storedHistory = (await window.api.store.get('usageHistory', {})) as Record<string, unknown> | null
-        const now = Date.now()
-        const history = Object.fromEntries(
-          Object.entries(storedHistory ?? {}).map(([id, points]) => [id, pruneHistory(points, now)]),
-        )
-        useUsageStore.getState().setAccountHistory(history)
-        savedHistoryRef.current = useUsageStore.getState().accountHistory
+        // The session trend was removed; drop the history it saved, if any.
+        window.api.store.delete('usageHistory').catch(() => {})
         const hydrate = (list: AccountConfig[]) => {
           for (const a of list) {
             const u = cachedUsage[a.id]
