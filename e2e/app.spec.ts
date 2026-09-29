@@ -32,14 +32,16 @@ test('smoke: main window renders the app shell', async () => {
 test('e2e: settings → provider manager, oauth-local detection, add account, render card', async () => {
   // --- open settings -------------------------------------------------------
   await page.getByRole('button', { name: 'Open settings' }).click()
-  // exact:true so we don't also match the "Refresh Settings" h3
+  // The dialog's title is its only heading named exactly "Settings".
   await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Accounts', exact: true })).toBeVisible()
+  // Accounts is a fieldset in the Settings dialog, so it is a named group.
+  await expect(page.getByRole('group', { name: 'Accounts', exact: true })).toBeVisible()
 
-  // --- provider catalog ----------------------------------------------------
-  const select = page.locator('#provider')
+  // --- provider catalog (shadcn Select on Base UI) --------------------------
+  const select = page.getByRole('combobox', { name: 'Provider' })
   await expect(select).toBeVisible()
-  const options = await select.locator('option').allTextContents()
+  await select.click()
+  const options = await page.getByRole('option').allTextContents()
   const joined = options.join(' | ')
   expect(joined).toContain('Claude Code')
   expect(joined).toContain('Z.AI GLM Coding Plan')
@@ -49,12 +51,13 @@ test('e2e: settings → provider manager, oauth-local detection, add account, re
   await page.screenshot({ path: 'e2e/artifacts/02-settings.png' })
 
   // --- oauth-local provider hides the API-key field ------------------------
-  await select.selectOption('anthropic')
+  await page.getByRole('option', { name: 'Claude Code', exact: true }).click()
   await expect(page.locator('#acct-key')).toHaveCount(0)
   await expect(page.getByText(/local Claude Code login/i)).toBeVisible()
 
   // --- api-key provider reveals key + base URL, add gated on key -----------
-  await select.selectOption('zai')
+  await select.click()
+  await page.getByRole('option', { name: 'Z.AI GLM Coding Plan', exact: true }).click()
   await expect(page.locator('#acct-key')).toBeVisible()
   await expect(page.locator('#acct-url')).toBeVisible()
   const addBtn = page.getByRole('button', { name: 'Add account', exact: true })
@@ -66,7 +69,7 @@ test('e2e: settings → provider manager, oauth-local detection, add account, re
   // On success the add-form resets (provider cleared → key field unmounts),
   // and a Z.AI row appears in the in-settings manager list.
   await expect(page.locator('#acct-key')).toHaveCount(0)
-  await expect(page.locator('#provider')).toHaveValue('')
+  await expect(select).toHaveText(/Select a provider/)
   await page.screenshot({ path: 'e2e/artifacts/03-account-added.png' })
 
   // --- close settings → account renders as a card in the main view ---------

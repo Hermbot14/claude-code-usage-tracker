@@ -30,7 +30,6 @@ export function useAccountsData() {
     setAccounts,
     setAccountUsage,
     setCurrentUsage,
-    appendHistory,
   } = useUsageStore()
 
   const isFetchingRef = useRef(false)
@@ -69,7 +68,6 @@ export function useAccountsData() {
         if (res.success && res.data) {
           const usage = res.data as ProviderUsage
           setAccountUsage(account.id, { status: 'ok', usage })
-          appendHistory(account.id, usage.sessionPercent, usage.weeklyPercent)
           lastUsageRef.current[account.id] = usage
           cacheDirty = true
           const worst = Math.max(usage.sessionPercent, usage.weeklyPercent)
@@ -108,7 +106,7 @@ export function useAccountsData() {
     } finally {
       isFetchingRef.current = false
     }
-  }, [setAccountUsage, setCurrentUsage, appendHistory])
+  }, [setAccountUsage, setCurrentUsage])
 
   // One-time bootstrap: providers, local logins, seed accounts.
   useEffect(() => {
@@ -125,6 +123,9 @@ export function useAccountsData() {
         // before the first (potentially rate-limited) network poll returns.
         const cachedUsage = ((await window.api.store.get('lastUsage', {})) || {}) as Record<string, ProviderUsage>
         lastUsageRef.current = { ...cachedUsage }
+
+        // The session trend was removed; drop the history it saved, if any.
+        window.api.store.delete('usageHistory').catch(() => {})
         const hydrate = (list: AccountConfig[]) => {
           for (const a of list) {
             const u = cachedUsage[a.id]

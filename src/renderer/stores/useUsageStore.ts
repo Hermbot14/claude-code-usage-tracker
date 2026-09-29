@@ -7,6 +7,7 @@ import type {
   AccountUsageState,
   ProviderInfo,
   LocalAccountInfo,
+  ProviderUsage,
 } from '@/types'
 
 interface UsageStore {
@@ -24,8 +25,6 @@ interface UsageStore {
   accountUsage: Record<string, AccountUsageState>
   providers: ProviderInfo[]
   localAccounts: LocalAccountInfo[]
-  /** In-memory recent session/weekly % samples per account, for sparklines. */
-  accountHistory: Record<string, { t: number; s: number; w: number }[]>
   refreshingIds: string[]
 
   // Actions
@@ -51,7 +50,6 @@ interface UsageStore {
   setAccountUsage: (id: string, state: AccountUsageState) => void
   setProviders: (providers: ProviderInfo[]) => void
   setLocalAccounts: (local: LocalAccountInfo[]) => void
-  appendHistory: (id: string, sessionPercent: number, weeklyPercent: number) => void
   refreshAccount: (id: string) => Promise<void>
   updateAccountPlan: (id: string, planLabel: string) => Promise<void>
 }
@@ -88,7 +86,6 @@ export const useUsageStore = create<UsageStore>((set, get) => ({
   accountUsage: {},
   providers: [],
   localAccounts: [],
-  accountHistory: {},
   refreshingIds: [],
 
   // Actions
@@ -298,12 +295,6 @@ export const useUsageStore = create<UsageStore>((set, get) => ({
 
   setLocalAccounts: (localAccounts) => set({ localAccounts }),
 
-  appendHistory: (id, sessionPercent, weeklyPercent) =>
-    set((state) => {
-      const prev = state.accountHistory[id] ?? []
-      const next = [...prev, { t: Date.now(), s: sessionPercent, w: weeklyPercent }].slice(-48)
-      return { accountHistory: { ...state.accountHistory, [id]: next } }
-    }),
 
   updateAccountPlan: async (id, planLabel) => {
     const accounts = get().accounts.map((a) => (a.id === id ? { ...a, planLabel: planLabel.trim() || undefined } : a))
@@ -320,9 +311,8 @@ export const useUsageStore = create<UsageStore>((set, get) => ({
     try {
       const res = await window.api.fetchAccountUsage({ ...account, forceRefresh: true })
       if (res.success && res.data) {
-        const usage = res.data as import('@/types').ProviderUsage
+        const usage = res.data as ProviderUsage
         get().setAccountUsage(id, { status: 'ok', usage })
-        get().appendHistory(id, usage.sessionPercent, usage.weeklyPercent)
       } else {
         get().setAccountUsage(id, {
           status: 'error',

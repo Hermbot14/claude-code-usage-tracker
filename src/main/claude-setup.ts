@@ -96,7 +96,7 @@ export async function installClaudeCli(): Promise<SetupActionResult> {
             : {
                 ok: false,
                 detail:
-                  'npm reported success but `claude` is not on PATH yet — restart the app (or your terminal) and rescan.',
+                  'npm reported success but `claude` is not on PATH yet. Restart the app (or your terminal) and rescan.',
               },
         )
       },
@@ -132,7 +132,7 @@ export async function launchCliLogin(provider: string = 'claude'): Promise<Setup
       ok: false,
       detail:
         provider === 'claude'
-          ? 'Claude Code is not installed yet — run Install first.'
+          ? 'Claude Code is not installed yet. Run Install first.'
           : `The ${entry.label} CLI is not installed.`,
     }
   }
@@ -168,7 +168,7 @@ export async function launchCliLogin(provider: string = 'claude'): Promise<Setup
     }
     return {
       ok: true,
-      detail: 'A terminal window opened — finish signing in via your browser. Your account will appear here automatically.',
+      detail: 'A terminal window opened. Finish signing in via your browser. Your account will appear here automatically.',
     }
   } catch (err) {
     return { ok: false, detail: err instanceof Error ? err.message : 'Failed to open a terminal' }

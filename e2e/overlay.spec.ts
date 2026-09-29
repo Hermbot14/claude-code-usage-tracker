@@ -19,6 +19,9 @@ test.beforeAll(async () => {
   // Pre-seed an isolated store with overlay mode on at 60% opacity.
   const userDataDir = mkdtempSync(join(tmpdir(), 'usage-tracker-overlay-'))
   const store = {
+    // No accounts, and local CLI logins opted out, so the overlay has no
+    // reading whatever is signed in on this machine (the "--" check needs it).
+    dismissedLocalAccounts: ['anthropic', 'openai', 'qwen'],
     overlayMode: true,
     overlayPosition: 'top-right',
     settings: {
@@ -81,4 +84,29 @@ test('overlay: the whole card is a drag region, expand button opts out', async (
   // only assert when present so the test stays meaningful but not flaky.
   if (cardRegion) expect(cardRegion).toBe('drag')
   if (buttonRegion) expect(buttonRegion).toBe('no-drag')
+})
+
+test('overlay: layout and WCAG AA contrast, light and dark', async () => {
+  await app.context().addInitScript({ path: 'e2e/qa/qa-check.js' })
+  await page.reload()
+  await page.waitForLoadState('domcontentloaded')
+  await page.waitForFunction(() => typeof (window as unknown as { __qa?: unknown }).__qa === 'function')
+  await page.addStyleTag({ content: '*{transition:none!important}' })
+  for (const dark of [false, true]) {
+    await page.evaluate((d) => document.documentElement.classList.toggle('dark', d), dark)
+    await page.waitForTimeout(150)
+    const label = `overlay ${dark ? 'dark' : 'light'}`
+    const [layout, contrast] = await page.evaluate((l) => {
+      const w = window as unknown as {
+        __qa: (x: string) => { verdict: string }
+        __contrast: (x: string) => { fails: string[] }
+      }
+      return [w.__qa(l), w.__contrast(l)] as const
+    }, label)
+    await page.screenshot({ path: `e2e/artifacts/overlay-${dark ? 'dark' : 'light'}.png` })
+    expect.soft(layout.verdict, JSON.stringify(layout)).toBe('clean')
+    expect.soft(contrast.fails, label).toEqual([])
+  }
+  // Nothing measured yet: the figure says so instead of claiming 0%.
+  await expect(page.locator('.overlay-percent')).toHaveText('--')
 })

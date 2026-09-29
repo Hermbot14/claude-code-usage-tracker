@@ -96,3 +96,6 @@ settings.local.json
 e2e/test-results/
 e2e/artifacts/
 playwright-report/
+
+# Playwright MCP scratch output
+.playwright-mcp/

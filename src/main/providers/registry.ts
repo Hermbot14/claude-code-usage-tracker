@@ -103,7 +103,7 @@ export const PROVIDERS: Record<ProviderId, ProviderDescriptor> = {
     sessionWindowLabel: 'n/a',
     weeklyWindowLabel: 'balance',
     implemented: false,
-    notes: 'Exposes account balance only — no session/weekly quota window.',
+    notes: 'Exposes account balance only, no session/weekly quota window.',
   },
 
   kimi: {
@@ -168,7 +168,7 @@ export const PROVIDERS: Record<ProviderId, ProviderDescriptor> = {
     sessionWindowLabel: 'n/a',
     weeklyWindowLabel: 'n/a',
     implemented: false,
-    notes: 'Placeholder — confirm usage endpoint before wiring.',
+    notes: 'Placeholder: confirm the usage endpoint before wiring.',
   },
 
   unknown: {

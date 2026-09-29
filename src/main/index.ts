@@ -175,8 +175,8 @@ function createWindow(overlayMode: boolean = false): void {
 
     // Read the last-persisted background colour so the window paint matches the
     // CSS theme from the very first pixel — prevents black/white gaps on resize.
-    const storedBg = storeService?.get('windowBackgroundColor', '#F2F2ED')
-    const backgroundColor = typeof storedBg === 'string' ? storedBg : '#F2F2ED'
+    const storedBg = storeService?.get('windowBackgroundColor', '#FAFAFA')
+    const backgroundColor = typeof storedBg === 'string' ? storedBg : '#FAFAFA'
 
     mainWindow = new BrowserWindow({
       width: normalBounds.width,
